@@ -1,0 +1,40 @@
+#!/bin/sh
+
+
+chown -R root:root /
+chown -R sstic:sstic /home/sstic
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+
+chown root:root /proc
+chown root:root /sys
+
+chmod 700 /proc
+chmod 700 /sys
+
+
+insmod /lib/modules/sstic.ko
+mount -t devtmpfs none /dev
+chmod a+rw /dev/sstic
+
+chmod o+rw /dev/ttyS0
+
+chown sstic:sstic /home/sstic/service
+chmod 766 /home/sstic/service
+
+stty erase ^H
+#stty -F /dev/ttyS0 -icrnl -ixon -ixoff -opost -isig -icanon -echo
+stty -F /dev/ttyS0  -ixon -ixoff -opost -isig  #-echo
+#stty -F /dev/ttyS0 -icrnl -ixon -ixoff -opost -isig #-icanon -echo
+#stty -F /dev/ttyS0  -ixon -ixoff -opost -isig -icanon -echo
+
+#setsid cttyhack setuidgid 1000 sh
+setsid cttyhack setuidgid 0 sh
+#setuidgid 1000 sh -c "socat PTY,link=/tmp/ttyS0,raw,echo=0 EXEC:/home/sstic/service"
+#setuidgid 1000 /home/sstic/service
+
+umount /proc
+umount /sys
+
+poweroff -f
