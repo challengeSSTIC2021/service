@@ -28,7 +28,7 @@ master_key = b"\xdd\x2d\xbe\x18\x99\x1c\xd1\xc3\x82\x16\xc4\xc0\x53\xa1\xdf\x0b"
 >>> c2.decrypt(encrypted)
 
 
-struct file_info file_perms[NB_FILES] = { { 0x4307121376ebbe45, 0xffffffffffffffff}, 
+struct file_info file_perms[NB_FILES] = { { 0x4307121376ebbe45, 0xffffffffffffffff},
                                         {0x0906271dff3e20b4, 0x10000},
                                         {0x7e0a6dea7841ef77, 0},
                                         {0x9c92b27651376bfb, 2}}; //this last one needs prod key
@@ -40,14 +40,14 @@ def _recv(size):
         ret += r.recv(size - len(ret))
     return ret
 
-def get_camellia_key(ts):  
+def get_camellia_key(ts):
     return hashlib.sha256(master_key + struct.pack("<I",ts)).digest()[:16]
 
 def get_payload(id, perm, ts):
     pt = struct.pack("<QQ",id, perm)
     print("pt:")
     hexdump.hexdump(pt)
-   
+
     key = get_camellia_key(ts)
     print("key = ")
     hexdump.hexdump(key)
@@ -82,7 +82,7 @@ def req_key(id, perm, ts):
     print("OK")
     return (pt,b"\x03" + _recv(16))
 
-#get ts of the last hour. 
+#get ts of the last hour.
 def get_ts():
     ts = int(time.time())
     ts -= (ts % 3600)
@@ -93,7 +93,8 @@ if 0:
     hexdump.hexdump(get_payload(0x1234567812345678,0x1111111,0x60313d9f))
     raise
 
-r = remote("localhost",4242)
+#r = remote("localhost",4242)
+r = remote("localhost",1337)
 r.recvuntil("STIC")
 ts = get_ts()
 old_ts = ts - 5000

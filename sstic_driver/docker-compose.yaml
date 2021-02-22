@@ -1,0 +1,7 @@
+version: '3'
+services:
+    sstic_linux_pwn:
+        build: docker
+        image: sstic_linux_pwn:latest
+        ports:
+            - "1337:1337"

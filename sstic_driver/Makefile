@@ -23,6 +23,13 @@ rootfs_test: exploit sstic.ko user_test service
 	cp service fs/home/sstic/service
 	cp sstic.ko fs/lib/modules/
 	cd fs && find . |cpio -H newc -o | gzip > ../rootfs.img
+
+
+rootfs:  sstic.ko  service
+	cp service fs/home/sstic/service
+	cp sstic.ko fs/lib/modules/
+	cd fs && find . |cpio -H newc -o | gzip > ../rootfs.img
+
 clean:
 	 make -C $(MODULES_DIR) M=$(PWD) clean
 	 rm service
@@ -50,11 +57,11 @@ user_test: user_test.c sstic_lib.h sstic_lib.c
 exploit: exploit.c 
 	gcc -static -o exploit -Wall exploit.c 
 
-docker: qemu/build/qemu-system-x86_64 linux/arch/x86/boot/bzImage rootfs.img wrapper.py run_service.sh qemu/build/pc-bios/bios-256k.bin
-	cp qemu/build/qemu-system-x86_64 docker
-	cp linux/arch/x86/boot/bzImage docker
+.PHONY docker
+docker: 
+	cp bzImage docker
 	cp rootfs.img docker
 	cp wrapper.py docker
 	cp run_service.sh docker
-	qemu/build/pc-bios/bios-256k.bin docker
+	rsync -av --progress qemu docker/qemu --exclude build --exclude .git
 

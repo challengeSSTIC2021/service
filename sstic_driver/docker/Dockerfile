@@ -2,10 +2,17 @@ FROM ubuntu:latest
 
 RUN apt-get -y update
 
-COPY bzImage Dockerfile rootfs.img run_service.sh  /root/
+COPY bzImage qemu rootfs.img run_service.sh  /root/
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get -yq install git socat python libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev ninja-build gcc build-essential
+RUN cd /root/qemu && ./configure --target-list=x86_64-softmmu && make -j 5
+RUN chmod +x /root/run_service.sh
+
+EXPOSE 1337
+
+#keep that at the end so we use cached image of compiled qemu when we modify it
 COPY wrapper.py /root/
-RUN export DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get -yq install socat python libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
-
+WORKDIR /root
+CMD /root/run_service.sh
 
