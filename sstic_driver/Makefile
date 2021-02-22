@@ -57,7 +57,7 @@ user_test: user_test.c sstic_lib.h sstic_lib.c
 exploit: exploit.c 
 	gcc -static -o exploit -Wall exploit.c 
 
-.PHONY docker
+.PHONY: docker
 docker: 
 	cp bzImage docker
 	cp rootfs.img docker
