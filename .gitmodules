@@ -1,5 +1,5 @@
 [submodule "sstic_driver/qemu"]
-	path = sstic_driver/qemu
+	path = sstic_driver/docker/qemu
 	url = git@github.com:challengeSSTIC2021/qemu.git
 [submodule "sstic_driver/linux"]
 	path = sstic_driver/linux
