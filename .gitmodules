@@ -1,6 +1,6 @@
 [submodule "sstic_driver/qemu"]
 	path = sstic_driver/qemu
-	url = https://github.com/challengeSSTIC2021/qemu.git
+	url = git@github.com:challengeSSTIC2021/qemu.git
 [submodule "sstic_driver/linux"]
 	path = sstic_driver/linux
 	url = git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
