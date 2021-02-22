@@ -63,6 +63,8 @@ docker:
 	cp rootfs.img docker
 	cp wrapper.py docker
 	cp run_service.sh docker
-	cp -r qemu docker
-	#rsync -av --progress qemu docker/ --exclude build
+	git submodule update --init docker/qemu
+	#no fucking idea why it can't pull submodule from the docker
+	#we do the configure here just for pulling only submodules we need
+	cd docker/qemu &&  ./configure --target-list=x86_64-softmmu
 
