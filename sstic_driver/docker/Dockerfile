@@ -2,7 +2,8 @@ FROM ubuntu:latest
 
 RUN apt-get -y update
 
-COPY bzImage qemu rootfs.img run_service.sh  /root/
+COPY bzImage rootfs.img run_service.sh  /root/
+ADD qemu /root/qemu
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get -yq install git socat python libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev ninja-build gcc build-essential
 RUN cd /root/qemu && ./configure --target-list=x86_64-softmmu && make -j 5

@@ -63,5 +63,6 @@ docker:
 	cp rootfs.img docker
 	cp wrapper.py docker
 	cp run_service.sh docker
-	rsync -av --progress qemu docker/ --exclude build
+	cp -r qemu docker
+	#rsync -av --progress qemu docker/ --exclude build
 
