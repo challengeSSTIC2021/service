@@ -1,0 +1,3 @@
+[submodule "sstic_driver/qemu"]
+	path = sstic_driver/qemu
+	url = https://github.com/challengeSSTIC2021/qemu.git

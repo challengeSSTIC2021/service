@@ -13,7 +13,7 @@
     -append 'console=ttyS0 loglevel=8 oops=panic panic=10 ip=:::::eth0:dhcp' \
     -monitor /dev/null \
     -initrd rootfs.img \
-    -net user -net nic \
-    -device pci-sstic
+    -net user,hostfwd=tcp::4242-:1337 -net nic \
+    -device pci-sstic 
 
 

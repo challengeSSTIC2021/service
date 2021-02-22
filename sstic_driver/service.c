@@ -6,10 +6,17 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/types.h>          
+#include <sys/socket.h>
+#include <netinet/in.h> 
+#include <strings.h>
 
 
 
 #include "sstic_lib.h"
+
+#define PORT 1337 
+
 #ifdef HEXDUMP
 #ifndef HEXDUMP_COLS
 #define HEXDUMP_COLS 16
@@ -122,7 +129,7 @@ struct file_info file_perms[NB_FILES] = { {0x4307121376ebbe45, 0xfffffffffffffff
 
 uint64_t req_perms[4] = {0xffffffffffffffff, 0xffffffffff, 0x100,0x10};
 
-void _read(char * buf, size_t size)
+void _read(int fd, char * buf, size_t size)
 {
 	size_t recved = 0;
     int n = 0;
@@ -133,7 +140,7 @@ void _read(char * buf, size_t size)
     }
 	while (recved < size)
     {
-		n = read(0, buf + recved, size - recved);
+		n = read(fd, buf + recved, size - recved);
         if(n < 0)
         {
             fprintf(stderr, "error while reading\n");
@@ -145,40 +152,40 @@ void _read(char * buf, size_t size)
 
 
 
-void do_req_check(struct header *hdr)
+void do_req_check(int connfd, struct header *hdr)
 {
     int ret;
     unsigned int id;
     char pt[16];
     int ts = time(NULL);
-    _read((char*)&id, 4);
+    _read(connfd, (char*)&id, 4);
     enum resp_type resp = 0;
     if(id> ts)
     {
         fprintf(stderr,"id in futur\n");
-        write(1, &(enum req_type){UNEXPECTED_ERROR},1);
+        write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
         return;
     }
     ret = wb_decrypt(hdr->payload, id, pt);
     if(ret)
     {
         fprintf(stderr,"unexpected error while decrypting\n");
-        write(1, &(enum req_type){UNEXPECTED_ERROR},1);
+        write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
         return;
     }
     if(ts > id && WB_TIMEOUT + id > ts)
     {
         fprintf(stderr,"check OK\n");
         resp = CHECK_OK;
-        write(1, &resp,1);
+        write(connfd, &resp, 1);
     }
     else
     {
         fprintf(stderr,"check EXPIRED\n");
         resp = CHECK_EXPIRED;
-        write(1, &resp,1);
+        write(connfd, &resp,1);
     }
-    write(1,pt,16);
+    write(connfd,pt,16);
 }
 
 int perms_req_valid(enum req_type req, uint64_t perm)
@@ -186,29 +193,29 @@ int perms_req_valid(enum req_type req, uint64_t perm)
     return perm < req_perms[req];
 }
 
-int dec_check_hdr(struct header* hdr, struct dec_payload* pt)
+int dec_check_hdr(int connfd, struct header* hdr, struct dec_payload* pt)
 {
     int ret;
     unsigned int id;
     int ts = time(NULL);
-    _read((char*)&id,4);
+    _read(connfd, (char*)&id,4);
     if(WB_TIMEOUT + id <= ts)
     {
         fprintf(stderr,"get key expired\n");
-        write(1, &(enum req_type){GETKEY_EXPIRED},1);
+        write(connfd, &(enum req_type){GETKEY_EXPIRED},1);
         return -1;
     }
     ret = wb_decrypt(hdr->payload, id, (char*)pt);
     if(ret)
     {
         fprintf(stderr,"unexpected error while decrypting\n");
-        write(1, &(enum req_type){UNEXPECTED_ERROR},1);
+        write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
         return ret;
     }
     if(!perms_req_valid(hdr->req_no, pt->perm))
     {
         fprintf(stderr,"bad perms for this req type\n");
-        write(1, &(enum req_type){REQ_ERROR}, 1);
+        write(connfd, &(enum req_type){REQ_ERROR}, 1);
         return -1;
     }
     return 0;
@@ -217,7 +224,7 @@ int dec_check_hdr(struct header* hdr, struct dec_payload* pt)
 
 
 
-void do_req_get_key(struct dec_payload *pt)
+void do_req_get_key(int connfd, struct dec_payload *pt)
 {
     char key[16];
     int i;
@@ -227,13 +234,13 @@ void do_req_get_key(struct dec_payload *pt)
     if(debug_mode == -1)
     {
         fprintf(stderr,"unexpected error while decrypting\n");
-        write(1, &(enum req_type){UNEXPECTED_ERROR},1);
+        write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
         return;
     }
     if(want_debug && debug_mode == 1)
     {
         fprintf(stderr,"trying to access prod key while device is in debug mode!\n");
-        write(1, &(enum req_type){GETKEY_INV_PERMS},1);
+        write(connfd, &(enum req_type){GETKEY_INV_PERMS},1);
     }
     //checking perm
     for(i=0; i<NB_FILES; i++)
@@ -247,27 +254,27 @@ void do_req_get_key(struct dec_payload *pt)
                 if(ret == -1)
                 {
                     fprintf(stderr,"unexpected error while decrypting\n");
-                    write(1, &(enum req_type){UNEXPECTED_ERROR},1);
+                    write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
                     return;
                 }
-                write(1, &(enum req_type){GETKEY_OK},1);
-                write(1, key, 16);
+                write(connfd, &(enum req_type){GETKEY_OK},1);
+                write(connfd, key, 16);
                 return;
             }
             else{
                 fprintf(stderr,"bad perms\n");
-                write(1, &(enum req_type){GETKEY_INV_PERMS},1);
+                write(connfd, &(enum req_type){GETKEY_INV_PERMS},1);
                 return;
             }
         }
     }
     fprintf(stderr,"file not found\n");
-    write(1, &(enum req_type){GETKEY_UNKOWN},1);
+    write(connfd, &(enum req_type){GETKEY_UNKOWN},1);
 }
 
-void do_req_exec_code(struct dec_payload *pt)
+void do_req_exec_code(int connfd, struct dec_payload *pt)
 {}
-void do_req_exec_file(struct dec_payload *pt)
+void do_req_exec_file(int connfd, struct dec_payload *pt)
 {}
     
 int main()
@@ -276,40 +283,62 @@ int main()
     struct dec_payload pt;
     enum resp_type resp;
     int ret;
-	int ttyfd = open("/dev/ttyS0", O_RDWR);
-    int logfd;
     
-    setvbuf(stdin, NULL, _IONBF, 0);
-	setvbuf(stdout, NULL, _IONBF, 0);
-    setvbuf(stderr, NULL, _IONBF, 0);
-	dup2(ttyfd,0);
-	dup2(ttyfd,1);
-    logfd = open("/home/sstic/log.txt", O_CREAT | O_WRONLY);
-    if(logfd == -1)
-    {
-        perror("open logfile\n");
-        abort();
-    }
-	
-    dup2(logfd,2);
-	write(1,"STIC",4);
+    int sockfd, connfd;
+    socklen_t len; 
+    struct sockaddr_in servaddr, cli; 
+  
+    // socket create and verification 
+    sockfd = socket(AF_INET, SOCK_STREAM, 0); 
+    if (sockfd == -1) { 
+        perror("socket listen\n"); 
+        abort(); 
+    } 
+    bzero(&servaddr, sizeof(servaddr)); 
+  
+    // assign IP, PORT 
+    servaddr.sin_family = AF_INET; 
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
+    servaddr.sin_port = htons(PORT); 
+  
+    // Binding newly created socket to given IP and verification 
+    if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) { 
+        perror("bind\n"); 
+        abort(); 
+    } 
+  
+    printf("service started!\n");
+    // Now server is ready to listen and verification 
+    if ((listen(sockfd, 1)) != 0) { 
+        perror("listen\n"); 
+        abort(); 
+    } 
+    len = sizeof(cli); 
+  
+    // Accept the data packet from client and verification 
+    connfd = accept(sockfd, (struct sockaddr *)&cli, &len); 
+    if (connfd < 0) { 
+        perror("server acccept\n"); 
+        abort(); 
+    } 
+	write(connfd,"STIC",4);
 	while(1)
 	{
-        _read((char*)&hdr, sizeof(hdr));
+        _read(connfd,(char*)&hdr, sizeof(hdr));
         if(hdr.req_no >= NB_REQ_TYPE)
         {
             fprintf(stderr,"bad reqno\n");
-            write(1, &(enum req_type){REQ_ERROR},1);
+            write(connfd, &(enum req_type){REQ_ERROR},1);
             continue;
         }
         //req check special case
         if((enum req_type)hdr.req_no == REQ_CHECK)
         {
-            do_req_check(&hdr);
+            do_req_check(connfd, &hdr);
             continue;
         }
         //decrypt and check perms of req type
-        ret = dec_check_hdr(&hdr, &pt);
+        ret = dec_check_hdr(connfd, &hdr, &pt);
         if(ret == -1)
         {
             //we already sended error code in dec_check_hdr
@@ -319,17 +348,17 @@ int main()
         switch((enum req_type)hdr.req_no)
         {
             case REQ_GET_KEY:
-                do_req_get_key(&pt);
+                do_req_get_key(connfd, &pt);
                 break;
             case REQ_EXEC_CODE:
-                do_req_exec_code(&pt);
+                do_req_exec_code(connfd, &pt);
                 break;
             case REQ_EXEC_FILE:
-                do_req_exec_file(&pt);
+                do_req_exec_file(connfd, &pt);
                 break;
             default:
                 resp = REQ_ERROR;
-                write(1, &resp, 1);
+                write(connfd, &resp, 1);
                 break;
         }
 	}
