@@ -1,0 +1,7 @@
+docker/bzImage
+docker/rootfs.img
+docker/run_service.sh
+docker/wrapper.py
+service
+sstic.ko
+

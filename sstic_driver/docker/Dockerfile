@@ -15,16 +15,16 @@ RUN apt-get -y update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY bzImage rootfs.img run_service.sh  /root/
 ADD qemu /root/qemu
 
 RUN cd /root/qemu && ./configure --target-list=x86_64-softmmu && make -j 5
-RUN chmod +x /root/run_service.sh
 
 EXPOSE 1337
 
 #keep that at the end so we use cached image of compiled qemu when we modify it
-COPY wrapper.py /root/
+COPY bzImage rootfs.img run_service.sh wrapper.py /root/
+
+RUN chmod +x /root/run_service.sh
 
 WORKDIR /root
 CMD /root/run_service.sh
