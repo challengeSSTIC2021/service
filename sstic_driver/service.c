@@ -6,16 +6,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <sys/types.h>          
+#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h> 
+#include <netinet/in.h>
 #include <strings.h>
 
 
 
 #include "sstic_lib.h"
 
-#define PORT 1337 
+#define PORT 1337
 
 #ifdef HEXDUMP
 #ifndef HEXDUMP_COLS
@@ -24,7 +24,7 @@
 void hexdump(void *mem, unsigned int len)
 {
         unsigned int i, j;
-        
+
         for(i = 0; i < len + ((len % HEXDUMP_COLS) ? (HEXDUMP_COLS - len % HEXDUMP_COLS) : 0); i++)
         {
                 /* print offset */
@@ -32,7 +32,7 @@ void hexdump(void *mem, unsigned int len)
                 {
                         printf("0x%06x: ", i);
                 }
- 
+
                 /* print hex data */
                 if(i < len)
                 {
@@ -42,7 +42,7 @@ void hexdump(void *mem, unsigned int len)
                 {
                         printf("   ");
                 }
-                
+
                 /* print ASCII dump */
                 if(i % HEXDUMP_COLS == (HEXDUMP_COLS - 1))
                 {
@@ -54,7 +54,7 @@ void hexdump(void *mem, unsigned int len)
                                 }
                                 else if(isprint(((char*)mem)[j])) /* printable char */
                                 {
-                                        putchar(0xFF & ((char*)mem)[j]);        
+                                        putchar(0xFF & ((char*)mem)[j]);
                                 }
                                 else /* other char */
                                 {
@@ -101,13 +101,12 @@ enum resp_type
     GETKEY_EXPIRED,
     GETKEY_INV_PERMS,
     GETKEY_UNKOWN,
+    GETKEY_DEBUG_DEVICE,
     REQ_ERROR = 0xfe,
     UNEXPECTED_ERROR = 0xff
 };
 
 #define WB_TIMEOUT 3600
-#define NB_FILES 4
-
 
 
 struct file_info
@@ -122,12 +121,15 @@ struct file_info
 // second: need to break wb to put good perm < 0x10000
 // third: need to get shell access to perform the gey_key locally (service will refuse as perm is 0)
 // fourth: need to pwn kernel to write in DEBUG_MODE pci register (but accessible through service after)
-struct file_info file_perms[NB_FILES] = { {0x4307121376ebbe45, 0xffffffffffffffff}, 
-                                        {0x0906271dff3e20b4, 0x10000},
-                                        {0x7e0a6dea7841ef77, 0},
-                                        {0x9c92b27651376bfb, 2}}; //this last one needs prod key
+const struct file_info file_perms[] = {
+    {0x4307121376ebbe45, 0xffffffffffffffff},
+    {0x0906271dff3e20b4, 0x10000},
+    {0x7e0a6dea7841ef77, 0},
+    {0x9c92b27651376bfb, 2}}; //this last one needs prod key
 
-uint64_t req_perms[4] = {0xffffffffffffffff, 0xffffffffff, 0x100,0x10};
+const size_t NB_FILES = sizeof(file_perms) / sizeof(file_perms[0]);
+
+uint64_t req_perms[NB_REQ_TYPE] = {0xffffffffffffffff, 0xffffffffffffffff, 0x100,0x10};
 
 void _read(int fd, char * buf, size_t size)
 {
@@ -160,12 +162,6 @@ void do_req_check(int connfd, struct header *hdr)
     int ts = time(NULL);
     _read(connfd, (char*)&id, 4);
     enum resp_type resp = 0;
-    if(id> ts)
-    {
-        fprintf(stderr,"id in futur\n");
-        write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
-        return;
-    }
     ret = wb_decrypt(hdr->payload, id, pt);
     if(ret)
     {
@@ -190,7 +186,7 @@ void do_req_check(int connfd, struct header *hdr)
 
 int perms_req_valid(enum req_type req, uint64_t perm)
 {
-    return perm < req_perms[req];
+    return perm <= req_perms[req];
 }
 
 int dec_check_hdr(int connfd, struct header* hdr, struct dec_payload* pt)
@@ -240,14 +236,14 @@ void do_req_get_key(int connfd, struct dec_payload *pt)
     if(want_debug && debug_mode == 1)
     {
         fprintf(stderr,"trying to access prod key while device is in debug mode!\n");
-        write(connfd, &(enum req_type){GETKEY_INV_PERMS},1);
+        write(connfd, &(enum req_type){GETKEY_DEBUG_DEVICE},1);
     }
     //checking perm
     for(i=0; i<NB_FILES; i++)
     {
         if(file_perms[i].id == pt->id)
         {
-            if(file_perms[i].perm && pt->perm <  file_perms[i].perm)
+            if(file_perms[i].perm && pt->perm <= file_perms[i].perm)
             {
                 //OK!
                 ret = sstic_getkey(key, pt->id);
@@ -276,51 +272,51 @@ void do_req_exec_code(int connfd, struct dec_payload *pt)
 {}
 void do_req_exec_file(int connfd, struct dec_payload *pt)
 {}
-    
+
 int main()
 {
     struct header hdr;
     struct dec_payload pt;
     enum resp_type resp;
     int ret;
-    
+
     int sockfd, connfd;
-    socklen_t len; 
-    struct sockaddr_in servaddr, cli; 
-  
-    // socket create and verification 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0); 
-    if (sockfd == -1) { 
-        perror("socket listen\n"); 
-        abort(); 
-    } 
-    bzero(&servaddr, sizeof(servaddr)); 
-  
-    // assign IP, PORT 
-    servaddr.sin_family = AF_INET; 
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    servaddr.sin_port = htons(PORT); 
-  
-    // Binding newly created socket to given IP and verification 
-    if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) { 
-        perror("bind\n"); 
-        abort(); 
-    } 
-  
+    socklen_t len;
+    struct sockaddr_in servaddr, cli;
+
+    // socket create and verification
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        perror("socket listen\n");
+        abort();
+    }
+    bzero(&servaddr, sizeof(servaddr));
+
+    // assign IP, PORT
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(PORT);
+
+    // Binding newly created socket to given IP and verification
+    if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
+        perror("bind\n");
+        abort();
+    }
+
     printf("service started!\n");
-    // Now server is ready to listen and verification 
-    if ((listen(sockfd, 1)) != 0) { 
-        perror("listen\n"); 
-        abort(); 
-    } 
-    len = sizeof(cli); 
-  
-    // Accept the data packet from client and verification 
-    connfd = accept(sockfd, (struct sockaddr *)&cli, &len); 
-    if (connfd < 0) { 
-        perror("server acccept\n"); 
-        abort(); 
-    } 
+    // Now server is ready to listen and verification
+    if ((listen(sockfd, 1)) != 0) {
+        perror("listen\n");
+        abort();
+    }
+    len = sizeof(cli);
+
+    // Accept the data packet from client and verification
+    connfd = accept(sockfd, (struct sockaddr *)&cli, &len);
+    if (connfd < 0) {
+        perror("server acccept\n");
+        abort();
+    }
 	write(connfd,"STIC",4);
 	while(1)
 	{
