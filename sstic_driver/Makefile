@@ -48,6 +48,9 @@ service: service.c sstic_lib.h sstic_lib.c
 	gcc -static -o service -Wall sstic_lib.c service.c 
 
 sstic.ko: sstic.c sstic.h
+	git submodule update --init linux
+	cp linux_config linux/.config
+	cd linux && make modules_prepare; cd ..
 	make -C $(MODULES_DIR) M=$(PWD) modules
 	#strip sstic.ko
 
