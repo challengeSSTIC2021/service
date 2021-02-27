@@ -69,5 +69,7 @@ docker:
 	git submodule update --init docker/qemu
 	#no fucking idea why it can't pull submodule from the docker
 	#we do the configure here just for pulling only submodules we need
-	cd docker/qemu &&  ./configure --target-list=x86_64-softmmu
+	
+	# Do not configure qemu outside of the docker (get some error when build)
+	#cd docker/qemu &&  ./configure --target-list=x86_64-softmmu
 
