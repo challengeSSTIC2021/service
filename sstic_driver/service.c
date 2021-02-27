@@ -237,6 +237,7 @@ void do_req_get_key(int connfd, struct dec_payload *pt)
     {
         fprintf(stderr,"trying to access prod key while device is in debug mode!\n");
         write(connfd, &(enum req_type){GETKEY_DEBUG_DEVICE},1);
+        return;
     }
     //checking perm
     for(i=0; i<NB_FILES; i++)
