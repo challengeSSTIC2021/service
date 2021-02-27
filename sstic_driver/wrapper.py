@@ -8,8 +8,13 @@ import random
 import time
 import socket
 import select
+import traceback
+from datetime import datetime
 
 p = None
+def log(msg):
+    peer = "{}:{}".format(os.environ.get('SOCAT_PEERADDR', '??'), os.environ.get('SOCAT_PEERPORT', '??'))
+    sys.stderr.write("{} | [{}]: {}\n".format(datetime.now(), peer, msg))
 
 def forward(port):
     time.sleep(2)
@@ -35,15 +40,16 @@ def forward(port):
 def handler(sig,frame):
     global p
 
-    sys.stderr.write("will kill {}\n".format(sig))
+    log("will kill {}".format(sig))
     try:
         p.kill()
+        p = None
     finally:
         exit()
 
 def spawn_vm():
     port = random.randint(1025,65535)
-    sys.stderr.write("port: {}\n".format(port))
+    log("assign port: {}".format(port))
     qemu_command=["qemu-system-x86_64",
         "-m", "128M",
         "-cpu", "qemu64,+smep,+smap",
@@ -76,12 +82,11 @@ def run():
             r, _, _ = select.select([p.stdout, p.stderr], [], [])
             if p.stdout in r:
                 out += os.read(p.stdout.fileno(),100)
-                sys.stdout.write(out)
             if p.stderr in r:
                 err += os.read(p.stderr.fileno(),100)
-                sys.stderr.write(out)
 
             if b"Could not set up host forwarding rule" in err:
+                log("fail: {}\n".format(err))
                 out = b""
                 err = b""
                 p.kill()
@@ -94,8 +99,13 @@ def run():
         #we're good, forward connexion to service
 
         forward(port)
+    except SystemExit:
+        pass
+    except:
+        log("exception")
+        traceback.print_exc()
     finally:
-        sys.stderr.write("exit\n")
+        log("exit")
         if p != None:
             p.kill()
             p = None
