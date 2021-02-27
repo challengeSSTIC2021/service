@@ -26,16 +26,19 @@ rootfs_test: exploit sstic.ko user_test service
 
 
 rootfs:  sstic.ko  service
+	rm -f fs/exploit
+	rm -f fs/user_test
 	cp service fs/home/sstic/service
 	cp sstic.ko fs/lib/modules/
+	chmod -R o+rX fs
 	cd fs && find . |cpio -H newc -o | gzip > ../rootfs.img
 
 clean:
-	 make -C $(MODULES_DIR) M=$(PWD) clean
-	 rm service
-	 rm sstic.ko
-	 rm user_test
-	 rm exploit
+	make -C $(MODULES_DIR) M=$(PWD) clean
+	rm service
+	rm sstic.ko
+	rm user_test
+	rm exploit
 
 clean_rootfs:
 	rm fs/user_test

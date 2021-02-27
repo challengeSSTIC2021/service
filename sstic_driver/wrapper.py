@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import signal
 import sys
 import os
@@ -8,7 +10,6 @@ import socket
 import select
 
 p = None
-
 
 def forward(port):
     time.sleep(2)
@@ -31,21 +32,19 @@ def forward(port):
             #print(buf)
             sock.send(buf)
 
-
-
-
 def handler(sig,frame):
+    global p
+
     sys.stderr.write("will kill {}\n".format(sig))
     try:
         p.kill()
-        exit()
-    except:
+    finally:
         exit()
 
 def spawn_vm():
     port = random.randint(1025,65535)
-    sys.stderr.write("port: {}".format(port))
-    qemu_command=["qemu/build/qemu-system-x86_64",
+    sys.stderr.write("port: {}\n".format(port))
+    qemu_command=["qemu-system-x86_64",
         "-m", "128M",
         "-cpu", "qemu64,+smep,+smap",
         "-nographic" ,
@@ -60,43 +59,47 @@ def spawn_vm():
     ret = Popen(qemu_command,bufsize=0,stdin=PIPE, stdout=PIPE, stderr=PIPE)
     return ret,port
 
+def run():
+    global p
 
+    signal.signal(13, handler)
+    signal.signal(15, handler)
+    signal.signal(17, handler)
+    signal.signal(28, handler)
 
-signal.signal(13, handler)
-signal.signal(15, handler)
-signal.signal(17, handler)
-signal.signal(28, handler)
-
-
-
-
-
-
-
-out = b""
-err = b""
-p,port = spawn_vm()
-#print("started!")
-while True:
-    r, _, _ = select.select([p.stdout, p.stderr], [], [])
-    if p.stdout in r:
-        out += os.read(p.stdout.fileno(),100)
-    if p.stderr in r:
-        err += os.read(p.stderr.fileno(),100)
-
-    if b"Could not set up host forwarding rule" in err:
-        out = b""
-        err = b""
-        p.kill()
+    out = b""
+    err = b""
+    try:
         p,port = spawn_vm()
-        continue
-    if b"service started!" in out:
+        #print("started!")
+        while True:
+            r, _, _ = select.select([p.stdout, p.stderr], [], [])
+            if p.stdout in r:
+                out += os.read(p.stdout.fileno(),100)
+                sys.stdout.write(out)
+            if p.stderr in r:
+                err += os.read(p.stderr.fileno(),100)
+                sys.stderr.write(out)
+
+            if b"Could not set up host forwarding rule" in err:
+                out = b""
+                err = b""
+                p.kill()
+                p,port = spawn_vm()
+                continue
+            if b"service started!" in out:
+                break
+
         #print("service started, forwarding")
         #we're good, forward connexion to service
+
         forward(port)
+    finally:
+        sys.stderr.write("exit\n")
+        if p != None:
+            p.kill()
+            p = None
+        exit()
 
-
-try:
-    p.wait()
-except:
-    pass
+if __name__ == "__main__":
+    run()

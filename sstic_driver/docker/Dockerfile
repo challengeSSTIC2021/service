@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:latest as builder
 
 RUN apt-get -y update && \
     DEBIAN_FRONTEND=noninteractive apt-get -yq install \
@@ -11,21 +11,39 @@ RUN apt-get -y update && \
         zlib1g-dev \
         ninja-build \
         gcc \
+        checkinstall \
         build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 ADD qemu /root/qemu
 
-RUN cd /root/qemu && ./configure --target-list=x86_64-softmmu && make -j 5
+RUN cd /root/qemu && \
+    ./configure --target-list=x86_64-softmmu && \
+    make -j 8 && \
+    checkinstall -D -y
 
-EXPOSE 1337
+FROM ubuntu:latest
+
+COPY --from=builder /root/qemu/qemu*.deb /root/
+
+RUN apt-get -y update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -yq --no-install-recommends install \
+        socat \
+        libglib2.0-bin \
+        libpixman-1-0 \
+        libfdt1 \
+        python3 && \
+    dpkg -i /root/qemu*.deb && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /root/qemu*.deb
 
 #keep that at the end so we use cached image of compiled qemu when we modify it
 COPY bzImage rootfs.img run_service.sh wrapper.py /root/
 
 RUN chmod +x /root/run_service.sh
 
+EXPOSE 1337
 WORKDIR /root
 CMD /root/run_service.sh
 

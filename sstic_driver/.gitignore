@@ -4,4 +4,15 @@ docker/run_service.sh
 docker/wrapper.py
 service
 sstic.ko
+fs/exploit
+fs/user_test
+fs/home/sstic/service
+fs/lib/modules/sstic.ko
 
+sstic.o
+sstic.mod*
+modules.order
+Module.symvers
+.sstic*
+.modules.order.cmd
+.Module.symvers.cmd

@@ -23,8 +23,9 @@ chmod a+rw /dev/sstic
 
 chmod o+rw /dev/ttyS0
 
-chown sstic:sstic /home/sstic/service
-chmod 766 /home/sstic/service
+chown -R sstic:sstic /home/sstic
+chmod 500 /home/sstic
+chmod 555 /home/sstic/service
 
 stty erase ^H
 #stty -F /dev/ttyS0 -icrnl -ixon -ixoff -opost -isig -icanon -echo
