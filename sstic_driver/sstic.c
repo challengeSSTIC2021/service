@@ -187,6 +187,7 @@ void free_sstic_session(struct sstic_session *session)
 		list_del(&region->node);
 		free_sstic_region(region);
 	}
+	kmem_cache_free(session);
 }
 
 static int sstic_open(struct inode *i, struct file *f)

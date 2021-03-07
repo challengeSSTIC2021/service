@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <strings.h>
+#include <string.h>
 
 
 
@@ -102,6 +103,10 @@ enum resp_type
     GETKEY_INV_PERMS,
     GETKEY_UNKOWN,
     GETKEY_DEBUG_DEVICE,
+    EXEC_CODE_ERROR,
+    EXEC_FILE_KEY_OK,
+    EXEC_FILE_BAD_KEY,
+    EXEC_FILE_ERROR,
     REQ_ERROR = 0xfe,
     UNEXPECTED_ERROR = 0xff
 };
@@ -130,6 +135,10 @@ const struct file_info file_perms[] = {
 const size_t NB_FILES = sizeof(file_perms) / sizeof(file_perms[0]);
 
 uint64_t req_perms[NB_REQ_TYPE] = {0xffffffffffffffff, 0xffffffffffffffff, 0x100,0x10};
+
+//code decrypting password
+
+const char code_decrypt[] = "\x00";
 
 void _read(int fd, char * buf, size_t size)
 {
@@ -270,9 +279,176 @@ void do_req_get_key(int connfd, struct dec_payload *pt)
 }
 
 void do_req_exec_code(int connfd, struct dec_payload *pt)
-{}
+{
+    size_t code_size, input_size, output_size;
+    char code[0x1000] = {0};
+    char input[0x1000] = {0};
+    char output[0x1000] = {0};
+    char errout[0x1000] = {0};
+    int ret;
+
+    _read(connfd, (char*)&code_size, sizeof(code_size));
+    if (code_size > 0x1000)
+    {
+        fprintf(stderr,"code size too big\n");
+        write(connfd, &(enum req_type){EXEC_CODE_ERROR},1);
+        return;
+    }
+
+    _read(connfd, code, code_size);
+    _read(connfd, (char*)&input_size, sizeof(input_size));
+    if (input_size > 0x1000)
+    {
+        fprintf(stderr,"input size too big\n");
+        write(connfd, &(enum req_type){EXEC_CODE_ERROR},1);
+        return;
+    }
+
+    _read(connfd, input, input_size);
+    //might seems weird but we ask client to send output size, so we don't have to send the whole page
+    //people wanting to send a lot of request to fuzz a bit the ISA will be probably be happy to have that
+    _read(connfd, (char*)&output_size, sizeof(output_size));
+
+    if (output_size > 0x1000)
+    {
+        fprintf(stderr,"output size too big\n");
+        write(connfd, &(enum req_type){EXEC_CODE_ERROR},1);
+        return;
+    }
+
+    ret = exec_code(code, code_size, input, input_size, output, output_size, errout, 0x200 );
+    if(ret)
+    {
+        fprintf(stderr,"unexpected error while executing code\n");
+        write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
+        return;
+    }
+
+    //TODO may be cool to avoid sending 0x200
+    write(connfd, output, output_size);
+    write(connfd, errout, 0x200);
+}
+
+#define BANNER_START "---EXEC OUTPUT START---\n"
+#define BANNER_END "---EXEC OUTPUT END---\n"
 void do_req_exec_file(int connfd, struct dec_payload *pt)
-{}
+{
+    size_t code_size, n;
+    char code[0x1000] = {0};
+    char input[0x1000] = {0};
+    char output[0x1000] = {0};
+    char errout[0x1000] = {0};
+    char buf[0x1000] = {0};
+    size_t executable_size, left, to_read, output_read = 0;
+    int ret;
+    char *rret;
+    int exec_fd;
+    int keyOK = 0;
+    FILE * foutput;
+
+    _read(connfd, input, 0x40);
+    
+    memcpy(code, code_decrypt, sizeof(code_decrypt));
+    code_size = sizeof(code_decrypt);
+    ret = exec_code(code, code_size, input, 0x40, output, 0x40, errout, 0 );
+    if(ret)
+    {
+        fprintf(stderr,"unexpected error while executing code\n");
+        write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
+        return;
+    }
+
+    //checking password
+    keyOK = 1;
+    for(int i=0; i<0x30; i++)
+    {
+        if(output[i] != 0xff)
+        {
+            keyOK = 0;
+            break;
+        }
+    }
+    if(keyOK)
+        keyOK = !memcmp(output + 0x30, "EXECUTE FILE OK!", 0x10);
+    
+    if(!keyOK)
+    {
+        fprintf(stderr,"wrong pass\n");
+        write(connfd, &(enum req_type){EXEC_FILE_BAD_KEY},1);
+        return;
+    }
+    else{
+        fprintf(stderr,"good pass\n");
+        write(connfd, &(enum req_type){EXEC_FILE_KEY_OK},1);
+    }
+
+    //ok receive file and execute it
+    _read(connfd, (char*)&executable_size, sizeof(executable_size));
+  
+    //TODO check if 300k is enough
+    if(executable_size > 300000)
+    {
+        fprintf(stderr,"executable too big\n");
+        write(connfd, &(enum req_type){EXEC_FILE_ERROR},1);
+        return;
+    }
+
+    exec_fd = open("/home/sstic/execfile", O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR | S_IXUSR);
+    if(exec_fd == -1)
+    {
+        fprintf(stderr,"unexpected error while reading size\n");
+        write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
+        return;
+    }
+    left = executable_size;
+    while(left)
+    {
+        to_read = left > 0x1000 ? 0x1000 : left;
+        _read(connfd, buf, to_read);
+        n = write(exec_fd, buf, to_read);
+        if(n != to_read)
+        {
+            fprintf(stderr,"unexpected error while writing file\n");
+            write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
+            close(exec_fd);
+            return; 
+        }
+        left -= to_read;
+    }
+    close(exec_fd);
+
+    foutput = popen("/home/sstic/execfile","r");
+    if(!foutput)
+    {
+        fprintf(stderr,"unexpected error while writing file\n");
+        write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
+        return;
+    }
+
+    //TODO double check this shit
+    while(!feof(foutput) && output_read < 0x1000)
+    {
+        rret = fgets(buf, 0x1000, foutput);
+        if(!rret)
+        {
+            fprintf(stderr,"unexpected error while reading output\n");
+            write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
+            pclose(foutput);
+            return;
+        }
+        n = strlen(buf);
+        if (n + output_read >= 0x1000)
+            n = 0x1000 - output_read - 1;
+        if (!n || n > 0x1000)
+            break;
+        output_read += n;
+    }
+    pclose(foutput);
+
+    write(connfd, BANNER_START, strlen(BANNER_START));
+    write(connfd, buf, output_read);
+    write(connfd, BANNER_END, strlen(BANNER_END));
+}
 
 int main()
 {
