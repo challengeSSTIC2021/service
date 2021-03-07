@@ -39,7 +39,7 @@ RUN apt-get -y update && \
     rm -rf /var/lib/apt/lists/* /root/qemu*.deb
 
 #keep that at the end so we use cached image of compiled qemu when we modify it
-COPY bzImage rootfs.img run_service.sh wrapper.py /root/
+COPY asm.py bzImage rootfs.img run_service.sh wrapper.py /root/
 
 RUN chmod +x /root/run_service.sh
 

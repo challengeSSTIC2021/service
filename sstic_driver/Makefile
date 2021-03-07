@@ -69,6 +69,7 @@ docker:
 	cp rootfs.img docker
 	cp wrapper.py docker
 	cp run_service.sh docker
+	cp sstic_isa/asm.py docker
 	git submodule update --init docker/qemu
 	#no fucking idea why it can't pull submodule from the docker
 	#we do the configure here just for pulling only submodules we need
