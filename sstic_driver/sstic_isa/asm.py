@@ -35,12 +35,12 @@ import sys
 #14 LD
 #15 ST
 #
-# 
-# 
+#
+#
 # memory layout
 # 0x0
 # reserved memory RO
-# 0x1000 
+# 0x1000
 # code RO
 # 0x2000
 # data RW
@@ -48,8 +48,8 @@ import sys
 # stdin RO
 # 0x4000
 # stdout RW
-# 
-# 
+#
+#
 
 """
 #include <stdint.h>
@@ -60,7 +60,7 @@ import sys
 	d ^= ROTL(c + b,13),	\
 	a ^= ROTL(d + c,18))
 #define ROUNDS 20
- 
+
 void salsa20_block(uint32_t out[16], uint32_t const in[16])
 {
 	int i;
@@ -106,13 +106,13 @@ void salsa20_block(uint32_t out[16], uint32_t const in[16])
 	a += b,  d ^= a,  d = ROTL(d, 8),	\
 	c += d,  b ^= c,  b = ROTL(b, 7))
 #define ROUNDS 20
- 
+
 void chacha_block(uint32_t out[16], uint32_t const in[16])
 {
 	int i;
 	uint32_t x[16];
 
-	for (i = 0; i < 16; ++i)	
+	for (i = 0; i < 16; ++i)
 		x[i] = in[i];
 	// 10 loops × 2 rounds/loop = 20 rounds
 	for (i = 0; i < ROUNDS; i += 2) {
@@ -141,7 +141,7 @@ void chacha_block(uint32_t out[16], uint32_t const in[16])
 #0..3: opcode
 #4..7: mode
 #8: imm/reg
-#9: direct 
+#9: direct
 #10..12:op1 (reg)
 #if cmp:
 #   13..15: 0:eq 1:lt 2:gt 3:lte 4:gte
@@ -258,7 +258,7 @@ class sstic_instr:
         self.is_jmp = self.opcode  == "JC"
         self.is_call = self.opcode == "CALL"
         self.is_ret = self.opcode == "RET"
-       
+
 
         if not self.is_jmp:
             self.op1 = (instr >> 10) & 7
@@ -270,13 +270,13 @@ class sstic_instr:
         if self.is_cmp:
             cmp_op = (instr >> 13) & 3
             self.cmp_op = sstic_instr.cmp_opnames[cmp_op]
-        
+
         if self.is_jmp:
             self.jump_cond = (instr >> 13) & 1
             self.jump_true = (instr >> 14) & 1
             self.jump_all = (instr >> 15) & 1
-        
-        
+
+
 
 
 
@@ -327,7 +327,7 @@ class sstic_instr:
             self.jump_all = "A" in flags
             self.jump_cond = "C" in flags
             return
-        
+
         if self.opcode.startswith("CMP"):
             self.cmp_op = self.opcode[3:]
             self.opcode = "CMP"
@@ -338,7 +338,7 @@ class sstic_instr:
                     self.imm = int(toks[2],16)
                 else:
                     self.op2 = int(toks[2][1])
-        
+
 
     def encode(self):
         instr = 0
@@ -367,8 +367,8 @@ class sstic_instr:
 
 
 
-            
-            
+
+
 
 
 
@@ -377,8 +377,8 @@ class sstic_instr:
 class register:
 
     masks = {
-        "B" : [0xff]*8,
-        "H" : [0xffff] * 16,
+        "B" : [0xff]*16,
+        "H" : [0xffff] * 8,
         "D" : [0xffffffff] * 4,
         "Q" : [0xffffffffffffffff] * 2,
         "V" : [0xffffffffffffffffffffffffffffffff]
@@ -390,12 +390,13 @@ class register:
     def assign_B(self, b):
         for i in range(16):
             self.raw[i] = b[i]
-    
+
     def get_B(self):
         ret = []
         for i in range(16):
             ret.append(self.raw[i])
-    
+        return ret
+
     def get_H(self):
         return struct.unpack("<HHHHHHHH", self.raw)
 
@@ -482,7 +483,7 @@ class Emulator:
     def read_mem_from_file(self, filename):
         with open(filename,"rb") as f:
             self.mem = bytearray(f.read(0x10000))
-    
+
     def write_mem_to_file(self, filename):
         with open(filename,"wb") as f:
             f.write(self.mem)
@@ -507,11 +508,11 @@ class Emulator:
                 if instr.mode != "V":
                     raise BadInstrException
                 op2 = self.get_reg_mem(self.regs[instr.op2].get_V()[0])
-        
+
         op1_l = self.regs[instr.op1].get_with_mode(instr.mode)
         if instr.is_direct and instr.is_imm:
             op2_l = [instr.imm] * Emulator.mode_nb[instr.mode]
-        else: 
+        else:
             op2_l = op2.get_with_mode(instr.mode)
         oper = Emulator.opers[instr.opcode if instr.opcode != "CMP" else instr.cmp_op]
         for i in range(len(op1_l)):
@@ -522,9 +523,9 @@ class Emulator:
             self.regs[instr.op1].assign_with_mode(instr.mode,op1_l)
         else:
             self.test_reg.assign_with_mode(instr.mode,op1_l)
-            
 
-            
+
+
     def do_shift(self, instr : sstic_instr):
         if not instr.is_direct or not instr.is_imm:
             raise BadInstrException
@@ -537,7 +538,7 @@ class Emulator:
         mask = register.masks[instr.mode]
         op1_l = [x & y for x,y in zip(op1_l,mask)]
         self.regs[instr.op1].assign_with_mode(instr.mode,op1_l)
-            
+
     def do_MROTL(self,instr):
         op1_l = self.regs[instr.op1].get_with_mode(instr.mode)
         new = [0] * len(op1_l)
@@ -550,7 +551,7 @@ class Emulator:
             raise BadInstrException
         if instr.imm % 4:
             raise BadInstrException
-        
+
         if instr.jump_cond:
             test_reg_l = self.test_reg.get_with_mode(instr.mode)
             if instr.jump_all:
@@ -632,7 +633,7 @@ class Emulator:
                     raise BadInstrException
                 op2 = self.regs[instr.op2].get_V()
                 self.regs[instr.op1].assign_V(op2)
-        
+
 
     def execute(self, debug=False):
         #if self.PC < 0x1000 or self.PC > 0x2000:
@@ -664,8 +665,8 @@ class Emulator:
         ret += "regs:\n"
         ret += f"PC : {self.PC:x}\n"
         for i in range(8):
-            ret += f"R{i} : {binascii.hexlify(self.regs[i].raw)}\n"
-        ret += f"RC: {binascii.hexlify(self.test_reg.raw)}\n"
+            ret += f"R{i} : " + binascii.hexlify(self.regs[i].raw).decode("utf-8") + "\n"
+        ret += "RC : " + binascii.hexlify(self.test_reg.raw).decode("utf-8") + "\n"
         ret += "stack: " + str(list(map(hex,self.stack)))
         print(ret)
 
@@ -763,7 +764,7 @@ _ROUND_EVEN:
     MOV.VID R4 0x3000
 _NEXT_LINE:
     CMPEQ.VID R4 0x3040
-    JC.VTAC _LOAD_OK                            
+    JC.VTAC _LOAD_OK
     LD.D R0 R4
     MROTL.D R0
     ADD.VID R4 0x4
@@ -783,7 +784,7 @@ _LOAD_OK:
     MOV.VID R4 0x3000
 _STORE_N_LINE:
     CMPEQ.VID R4 0x3040
-    JC.VTAC _ROUND_LOOP                            
+    JC.VTAC _ROUND_LOOP
     ST.D R0 R4
     MROTL.D R0
     MROTL.D R0
@@ -881,7 +882,7 @@ _ROUND_LOOP:
     ADD.VID R6 0x10
     LD.V R3 R6
     ### if round is ODD
-    
+
     XOR.VD R6 R6
     ADD.VID R6 0x1
     AND.VD R6 R7
@@ -952,7 +953,7 @@ _DO_ROUND:
     RET
 
 _END:
-#here we should add the original matrix at 0x2000 before xor but a 
+#here we should add the original matrix at 0x2000 before xor but a
 #missing flag in the ADD make it add 0x2000 instead of the
 #content at 0x2000, so the key can be retrieved easily
 
@@ -960,9 +961,9 @@ _END:
     MOV.VDI R0 0x2000
     MOV.VDI R2 0x100
     LD.VI R1 0x3000
-    LD.V R3 R2 
+    LD.V R3 R2
     ADD.DD R1 R0
-    XOR.V R1 R2
+    XOR.VD R1 R3
     ST.VI R1 0x3000
     ADD.VID R0 0x10
     ADD.VID R2 0x10
@@ -970,7 +971,7 @@ _END:
     LD.VI R1 0x3010
     LD.V R3 R2
     ADD.DD R1 R0
-    XOR.V R1 R2
+    XOR.VD R1 R3
     ST.VI R1 0x3010
     ADD.VID R0 0x10
     ADD.VID R2 0x10
@@ -978,7 +979,7 @@ _END:
     LD.VI R1 0x3020
     LD.V R3 R2
     ADD.DD R1 R0
-    XOR.V R1 R2
+    XOR.VD R1 R3
     ST.VI R1 0x3020
     ADD.VID R0 0x10
     ADD.VID R2 0x10
@@ -986,13 +987,12 @@ _END:
     LD.VI R1 0x3030
     LD.V R3 R2
     ADD.DD R1 R0
-    XOR.V R1 R2
+    XOR.VD R1 R3
     ST.VI R1 0x3030
 
     RET
 """
 
-import hexdump
 
 def _rotl32(w,r):
     return ( ( ( w << r ) & 0xffffffff) | ( w >> ( 32 - r ) ) )
@@ -1046,25 +1046,88 @@ def quarter_round(x, a, b, c, d):
 
 """
 round 0 :
-['0x1b897765', '0x63d1be2c', '0xac1a07f5', '0xf05e4fbd', 
-'0x70f615f5', '0x2e78470b', '0xd46a1466', '0x4965d829', 
-'0xef94897e', '0x53e9549a', '0x485d31fd', '0x90a0ee25', 
+['0x1b897765', '0x63d1be2c', '0xac1a07f5', '0xf05e4fbd',
+'0x70f615f5', '0x2e78470b', '0xd46a1466', '0x4965d829',
+'0xef94897e', '0x53e9549a', '0x485d31fd', '0x90a0ee25',
 '0xa9524338', '0xfd97064c', '0x21aebb7', '0x4a5eafe7']
 round 1 :
-['0x115735e8', '0x4efa61f4', '0x2a24d9e6', '0xeb763ec3', 
-'0xb6ce2e6f', '0xbe4f126e', '0xc14907b2', '0x9ac7d3c', 
-'0x4cb7a132', '0x554c454d', '0x1a29e95c', '0x733c1d6d', 
+['0x115735e8', '0x4efa61f4', '0x2a24d9e6', '0xeb763ec3',
+'0xb6ce2e6f', '0xbe4f126e', '0xc14907b2', '0x9ac7d3c',
+'0x4cb7a132', '0x554c454d', '0x1a29e95c', '0x733c1d6d',
 '0x50f09ddf', '0x76d10ecc', '0x735d8d65', '0xc035b700']
 
-'0x8320205a', '0x284639fb', '0xb52bf835', '0x1a656f4', 
-'0x7c158a92', '0x5fdebea5', '0x145ac15', '0x34fda8c9', 
-'0x3bc44d6f', '0xc6e84b43', '0x2795413a', '0x1af82f9', 
+'0x8320205a', '0x284639fb', '0xb52bf835', '0x1a656f4',
+'0x7c158a92', '0x5fdebea5', '0x145ac15', '0x34fda8c9',
+'0x3bc44d6f', '0xc6e84b43', '0x2795413a', '0x1af82f9',
 '0xc18a68b9', '0x7510b99c', '0x6d53dcc9', '0x6c604ff1'"""
 
+key = bytes([249, 252, 192,
+ 83,
+ 135,
+ 67,
+ 166,
+ 149,
+ 253,
+ 236,
+ 156,
+ 217,
+ 211,
+ 21,
+ 141,
+ 58,
+ 98,
+ 204,
+ 39,
+ 61,
+ 232,
+ 144,
+ 85,
+ 129,
+ 196,
+ 250,
+ 201,
+ 28,
+ 190,
+ 69,
+ 16,
+ 52,
+ 26,
+ 9,
+ 22,
+ 202,
+ 250,
+ 5,
+ 20,
+ 246,
+ 128,
+ 228,
+ 96,
+ 74,
+ 168,
+ 151,
+ 186,
+ 212,
+ 173,
+ 98,
+ 160,
+ 45,
+ 205,
+ 155,
+ 53,
+ 116,
+ 135,
+ 246,
+ 122,
+ 180,
+ 113,
+ 52,
+ 182,
+ 151])
 
 
 
 def test():
+    import hexdump
     mat_raw = bytes([i for i in range(0x40)])
     mat = []
     for i in range(16):
@@ -1075,7 +1138,7 @@ def test():
         quarter_round(x, 1, 5,  9, 13)
         quarter_round(x, 2, 6, 10, 14)
         quarter_round(x, 3, 7, 11, 15)
-        
+
         print("round 0 :")
         print(list(map(hex,x)))
 
@@ -1106,6 +1169,18 @@ def test():
     hexdump.hexdump(em.mem[0x3000:0x3040])
     assert(mat2 == x)
 
+def test2():
+    import hexdump
+
+    code = assemble_code(chacha20_routine, 0x1000)
+    rom = bytes([ 0x24, 0x72, 0x98, 0x45, 0x33, 0xe3, 0xf6, 0xe7, 0x72, 0xb, 0xda, 0xef, 0x39, 0x3e, 0x4, 0x96, 0xd8, 0x2f, 0xc7, 0x26, 0x45, 0x3e, 0x19, 0x5, 0x15, 0x2e, 0xbd, 0x8c, 0xf3, 0xdc, 0xca, 0x45, 0x9f, 0xdf, 0xea, 0x53, 0xef, 0xf6, 0xef, 0x35, 0xcf, 0x5b, 0x63, 0xf1, 0xf4, 0x3c, 0x57, 0x4e, 0xc9, 0x4e, 0x7b, 0xf, 0x2c, 0x15, 0x89, 0x9d, 0x14, 0x72, 0xf4, 0x2e, 0x72, 0x34, 0x4, 0xd2])
+    stdin = key
+    em = Emulator()
+    em.mem[0x100:0x100+len(rom)] = rom
+    em.mem[0x2000:0x2000+len(stdin)] = stdin
+    em.mem[0x1000:0x1000+len(code)] = code
+    em.execute(False)
+    hexdump.hexdump(em.mem[0x3000:0x3040])
 
 #0 ROM
 #0x1000 CODE
@@ -1116,7 +1191,7 @@ def test():
 
 
 if __name__ == "__main__":
-    if sys.argv != 2:
+    if len(sys.argv) != 2:
         exit()
     em = Emulator()
     try:
@@ -1126,15 +1201,20 @@ if __name__ == "__main__":
         print("Bad instruction")
     except SegfaultException:
         print("Forbidden memory access")
-    except:
+    except Exception as e:
+        #import traceback
         print("Unexpected error")
+        #print(str(e))
+        #track = traceback.format_exc()
+        #print(track)
+
     try:
         em.write_mem_to_file(sys.argv[1])
         em.dump_state()
     except:
         print("Debug log unavailable")
 
-    
 
 
-        
+
+

@@ -42,7 +42,7 @@
 
 
 //TODO spinlock
-#define DEBUG_SSTIC 1
+//#define DEBUG_SSTIC 1
 
 #define DEVICE_NAME "sstic_device"
 #define CLASS_NAME "sstic_class"
@@ -187,7 +187,15 @@ void free_sstic_session(struct sstic_session *session)
 		list_del(&region->node);
 		free_sstic_region(region);
 	}
-	kmem_cache_free(session);
+	for(i=0; i<4; i++)
+	{
+		if(session->regions[i])
+		{
+			kref_put(&session->regions[i]->refcount, free_phy_region);
+			session->regions[i] = NULL;
+		}
+	}
+	kmem_cache_free(sstic_session_cache, session);
 }
 
 static int sstic_open(struct inode *i, struct file *f)
@@ -233,8 +241,8 @@ vm_fault_t sstic_vm_fault(struct vm_fault *vmf)
 	int ret = 0;
 	#ifdef DEBUG_SSTIC
 		printk(KERN_ERR "fault_pgoff : %x\n",pgoff);
-		printk(KERN_ERR "addr : %llx\n",vmf->address);
-		printk(KERN_ERR "nb_pages : %llx\n",phy_region->nb_pages);
+		printk(KERN_ERR "addr : %lx\n",vmf->address);
+		printk(KERN_ERR "nb_pages : %lx\n",phy_region->nb_pages);
 		#endif
 	if(pgoff >= phy_region->nb_pages)
 	{
@@ -252,9 +260,9 @@ vm_fault_t sstic_vm_fault(struct vm_fault *vmf)
 	}
 	addr = vma->vm_start + (pgoff << PAGE_SHIFT);
 	#ifdef DEBUG_SSTIC
-		printk(KERN_ERR "addr : %llx\n",addr);
-		printk(KERN_ERR "will insert pfn : %llx\n",page_to_pfn(phy_region->pages[pgoff]));
-		printk(KERN_ERR "page_count :  : %llx\n",page_count(phy_region->pages[pgoff]));
+		printk(KERN_ERR "addr : %lx\n",addr);
+		printk(KERN_ERR "will insert pfn : %lx\n",page_to_pfn(phy_region->pages[pgoff]));
+		printk(KERN_ERR "page_count :  : %lx\n",page_count(phy_region->pages[pgoff]));
 		#endif
 		/*
 	ret = vmf_insert_page(vma, addr, phy_region->pages[pgoff]);*/
@@ -291,9 +299,9 @@ void sstic_vm_open(struct vm_area_struct *new_vma)
 		BUG_ON(!new_phy);
 		#ifdef DEBUG_SSTIC
 		printk(KERN_ERR "in open\n");
-		printk(KERN_ERR "new_vma start : %llx\n",new_vma->vm_start);
-		printk(KERN_ERR "new_size : %llx\n",new_size);
-		printk(KERN_ERR "off_split : %llx\n",phy->addr_split);
+		printk(KERN_ERR "new_vma start : %lx\n",new_vma->vm_start);
+		printk(KERN_ERR "new_size : %lx\n",new_size);
+		printk(KERN_ERR "off_split : %lx\n",phy->addr_split);
 		#endif
 		//BUG_ON(phy->off_split > phy->nb_pages);
 		/*
@@ -366,7 +374,7 @@ void sstic_vm_open(struct vm_area_struct *new_vma)
 			//copy bottom of old_phy
 			size_t before_size =  (phy->addr_split - phy->addr_start) >> PAGE_SHIFT;
 			#ifdef DEBUG_SSTIC
-			printk(KERN_ERR "before_size %llx\n",before_size);
+			printk(KERN_ERR "before_size %lx\n",before_size);
 			#endif
 			for(i=0; i<new_size; i++)
 			{
@@ -403,8 +411,8 @@ int sstic_vm_split(struct vm_area_struct * old_vma, unsigned long new_addr)
 {
 	struct sstic_phy_region *phy = old_vma->vm_private_data;
 	#ifdef DEBUG_SSTIC
-		printk(KERN_ERR "vm_start old : %llx\n",old_vma->vm_start);
-		printk(KERN_ERR "new_addr : %llx\n",new_addr);
+		printk(KERN_ERR "vm_start old : %lx\n",old_vma->vm_start);
+		printk(KERN_ERR "new_addr : %lx\n",new_addr);
 		#endif
 	phy->addr_split = new_addr;
 	phy->addr_start = old_vma->vm_start;
@@ -444,7 +452,7 @@ int ioctl_alloc_region(struct sstic_session *session, union sstic_arg *arg)
 		return -ENOMEM;
 	arg->alloc.id = id * 0x1000;
 	#ifdef DEBUG_SSTIC
-	printk(KERN_ERR "flags : %llx\n", region->flags);
+	printk(KERN_ERR "flags : %lx\n", region->flags);
 	#endif
 	return 0;
 }
@@ -501,12 +509,12 @@ int ioctl_assoc_region(struct sstic_session *session, union sstic_arg *arg)
 	#endif
 	if(arg->assoc.type == STDINNO)
 	{
-		if(!region->flags & SSTIC_WR)
+		if(!(region->flags & SSTIC_WR))
 			return -EINVAL;
 	}
 	if(arg->assoc.type == CODENO)
 	{
-		if(!region->flags & SSTIC_WR)
+		if(!(region->flags & SSTIC_WR))
 			return -EINVAL;
 	}
 	if(arg->assoc.type == STDOUTNO)
@@ -530,7 +538,7 @@ int ioctl_assoc_region(struct sstic_session *session, union sstic_arg *arg)
 
 int ioctl_submit_command(struct sstic_session *session, union sstic_arg *arg)
 {
-	int i;
+	//int i;
 	int retcode;
 
 	if(!_mmio)
@@ -722,7 +730,7 @@ int sstic_mmap(struct file * file, struct vm_area_struct * vma)
 		goto out;
 	}
 		#ifdef DEBUG_SSTIC
-		printk(KERN_ERR "vm_size : %llx\n", vm_size);
+		printk(KERN_ERR "vm_size : %lx\n", vm_size);
 		#endif
 	if (vm_size >> PAGE_SHIFT !=  phy_region->nb_pages)
 	{
@@ -733,7 +741,7 @@ int sstic_mmap(struct file * file, struct vm_area_struct * vma)
 		goto out;
 	}
 	#ifdef DEBUG_SSTIC
-	printk(KERN_ERR "flags : %llx\n", region->flags);
+	printk(KERN_ERR "flags : %lx\n", region->flags);
 	#endif
 	if(vma->vm_flags & VM_READ)
 	{
@@ -790,9 +798,6 @@ static unsigned long sstic_get_unmapped_area(struct file *const filp,
 static int sstic_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
 	void __iomem *mmio;
-	char *buf;
-	int len, i;
-	struct proc_dir_entry *proc_entry;
 
 	printk("probed pci dev, trying read.\n");
 
@@ -807,7 +812,7 @@ static int sstic_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent
 	_pdev = pdev;
 
 	#ifdef DEBUG_SSTIC
-	printk(KERN_ERR "mmio %llx\n",_mmio);
+	printk(KERN_ERR "mmio %lx\n",_mmio);
 	#endif
 	return 0;
 }
@@ -879,6 +884,8 @@ static int __init sstic_init(void) /* Constructor */
 static void __exit sstic_exit(void) /* Destructor */
 {
 	unregister_chrdev_region(first, 1);
+	kmem_cache_destroy(sstic_region_cache);
+	kmem_cache_destroy(sstic_region_cache);
 }
 
 module_init(sstic_init);

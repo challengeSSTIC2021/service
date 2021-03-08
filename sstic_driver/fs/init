@@ -24,7 +24,7 @@ chmod a+rw /dev/sstic
 chmod o+rw /dev/ttyS0
 
 chown -R sstic:sstic /home/sstic
-chmod 500 /home/sstic
+chmod 700 /home/sstic
 chmod 555 /home/sstic/service
 
 stty erase ^H

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-../qemu/build/qemu-system-x86_64 \
+qemu-system-x86_64 \
     -m 128M \
     -cpu qemu64,+smep,+smap \
     -nographic \

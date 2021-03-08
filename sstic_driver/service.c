@@ -18,6 +18,8 @@
 
 #define PORT 1337
 
+//#define HEXDUMP
+
 #ifdef HEXDUMP
 #ifndef HEXDUMP_COLS
 #define HEXDUMP_COLS 16
@@ -71,7 +73,7 @@ void hexdump(void *mem, unsigned int len)
 
 //SERVICE
 
-#define MAX_SIZE 500000
+#define MAX_SIZE 900000
 
 struct header{
     uint8_t req_no;
@@ -138,9 +140,35 @@ uint64_t req_perms[NB_REQ_TYPE] = {0xffffffffffffffff, 0xffffffffffffffff, 0x100
 
 //code decrypting password
 
-const char code_decrypt[] = "\x00";
+const char code_decrypt[] = "\x45\x06\x01\x00\x49\x07\x40\x00\x4c\xe3\x2c\x10\x42\x1f\x00\x20\x42"
+"\x1b\x00\x30\x40\x1e\x01\x00\x40\x1a\x01\x00\x4e\x00\x07\x00\x4f"
+"\x00\x06\x00\x40\x07\x10\x00\x4c\x03\x04\x10\x45\x1e\x07\x00\x49"
+"\x1f\x14\x00\x4c\xe3\x38\x11\x42\x1b\x00\x30\x4e\x00\x06\x00\x40"
+"\x1b\x10\x00\x4e\x04\x06\x00\x40\x1b\x10\x00\x4e\x08\x06\x00\x40"
+"\x1b\x10\x00\x4e\x0c\x06\x00\x45\x1a\x06\x00\x40\x1b\x01\x00\x43"
+"\x1a\x07\x00\x45\x16\x05\x00\x49\x1a\x05\x00\x4c\xa3\x98\x10\x7d"
+"\x03\xd0\x10\x42\x1b\x00\x30\x4f\x00\x06\x00\x40\x1b\x10\x00\x4f"
+"\x04\x06\x00\x40\x1b\x10\x00\x4f\x08\x06\x00\x40\x1b\x10\x00\x4f"
+"\x0c\x06\x00\x4c\x03\x30\x10\x2a\x04\x00\x00\x2a\x08\x00\x00\x2a"
+"\x08\x00\x00\x2a\x0c\x00\x00\x2a\x0c\x00\x00\x2a\x0c\x00\x00\x7d"
+"\x03\xd0\x10\x2a\x0c\x00\x00\x2a\x08\x00\x00\x2a\x08\x00\x00\x2a"
+"\x04\x00\x00\x2a\x04\x00\x00\x2a\x04\x00\x00\x4c\x03\x74\x10\x20"
+"\x02\x01\x00\x25\x0e\x00\x00\x42\x16\x03\x00\x27\x17\x10\x00\x26"
+"\x0f\x10\x00\x24\x0e\x05\x00\x20\x0a\x03\x00\x25\x06\x02\x00\x42"
+"\x16\x01\x00\x27\x17\x0c\x00\x26\x07\x14\x00\x24\x06\x05\x00\x20"
+"\x02\x01\x00\x25\x0e\x00\x00\x42\x16\x03\x00\x27\x17\x08\x00\x26"
+"\x0f\x18\x00\x24\x0e\x05\x00\x20\x0a\x03\x00\x25\x06\x02\x00\x42"
+"\x16\x01\x00\x27\x17\x07\x00\x26\x07\x19\x00\x24\x06\x05\x00\x40"
+"\x1f\x01\x00\x0b\x00\x00\x00\x42\x03\x00\x20\x42\x0b\x00\x01\x4e"
+"\x05\x00\x30\x4e\x0c\x02\x00\x20\x06\x00\x00\x45\x04\x02\x00\x4f"
+"\x05\x00\x30\x40\x03\x10\x00\x40\x0b\x10\x00\x4e\x05\x10\x30\x4e"
+"\x0c\x02\x00\x20\x06\x00\x00\x45\x04\x02\x00\x4f\x05\x10\x30\x40"
+"\x03\x10\x00\x40\x0b\x10\x00\x4e\x05\x20\x30\x4e\x0c\x02\x00\x20"
+"\x06\x00\x00\x45\x04\x02\x00\x4f\x05\x20\x30\x40\x03\x10\x00\x40"
+"\x0b\x10\x00\x4e\x05\x30\x30\x4e\x0c\x02\x00\x20\x06\x00\x00\x45"
+"\x04\x02\x00\x4f\x05\x30\x30\x0b\x00\x00\x00";
 
-void _read(int fd, char * buf, size_t size)
+void _read(int fd, unsigned char * buf, size_t size)
 {
 	size_t recved = 0;
     int n = 0;
@@ -169,7 +197,7 @@ void do_req_check(int connfd, struct header *hdr)
     unsigned int id;
     char pt[16];
     int ts = time(NULL);
-    _read(connfd, (char*)&id, 4);
+    _read(connfd, (unsigned char*)&id, 4);
     enum resp_type resp = 0;
     ret = wb_decrypt(hdr->payload, id, pt);
     if(ret)
@@ -203,7 +231,7 @@ int dec_check_hdr(int connfd, struct header* hdr, struct dec_payload* pt)
     int ret;
     unsigned int id;
     int ts = time(NULL);
-    _read(connfd, (char*)&id,4);
+    _read(connfd, (unsigned char*)&id,4);
     if(WB_TIMEOUT + id <= ts)
     {
         fprintf(stderr,"get key expired\n");
@@ -278,16 +306,19 @@ void do_req_get_key(int connfd, struct dec_payload *pt)
     write(connfd, &(enum req_type){GETKEY_UNKOWN},1);
 }
 
+
+#define BANNER_ERR_START "---DEBUG LOG START---\n"
+#define BANNER_ERR_END "---DEBUG LOG END---\n"
 void do_req_exec_code(int connfd, struct dec_payload *pt)
 {
     size_t code_size, input_size, output_size;
-    char code[0x1000] = {0};
-    char input[0x1000] = {0};
-    char output[0x1000] = {0};
-    char errout[0x1000] = {0};
+    unsigned char code[0x1000] = {0};
+    unsigned char input[0x1000] = {0};
+    unsigned char output[0x1000] = {0};
+    unsigned char errout[0x1000] = {0};
     int ret;
 
-    _read(connfd, (char*)&code_size, sizeof(code_size));
+    _read(connfd, (unsigned char*)&code_size, sizeof(code_size));
     if (code_size > 0x1000)
     {
         fprintf(stderr,"code size too big\n");
@@ -296,7 +327,7 @@ void do_req_exec_code(int connfd, struct dec_payload *pt)
     }
 
     _read(connfd, code, code_size);
-    _read(connfd, (char*)&input_size, sizeof(input_size));
+    _read(connfd, (unsigned char*)&input_size, sizeof(input_size));
     if (input_size > 0x1000)
     {
         fprintf(stderr,"input size too big\n");
@@ -307,7 +338,7 @@ void do_req_exec_code(int connfd, struct dec_payload *pt)
     _read(connfd, input, input_size);
     //might seems weird but we ask client to send output size, so we don't have to send the whole page
     //people wanting to send a lot of request to fuzz a bit the ISA will be probably be happy to have that
-    _read(connfd, (char*)&output_size, sizeof(output_size));
+    _read(connfd, (unsigned char*)&output_size, sizeof(output_size));
 
     if (output_size > 0x1000)
     {
@@ -316,17 +347,18 @@ void do_req_exec_code(int connfd, struct dec_payload *pt)
         return;
     }
 
-    ret = exec_code(code, code_size, input, input_size, output, output_size, errout, 0x200 );
+    ret = exec_code(code, code_size, input, input_size, output, output_size, errout, 0x200);
     if(ret)
     {
         fprintf(stderr,"unexpected error while executing code\n");
-        write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
+        write(connfd, &(enum req_type){UNEXPECTED_ERROR}, 1);
         return;
     }
 
-    //TODO may be cool to avoid sending 0x200
     write(connfd, output, output_size);
-    write(connfd, errout, 0x200);
+    write(connfd, BANNER_ERR_START, strlen(BANNER_ERR_START));
+    write(connfd, errout, strlen((char*)errout));
+    write(connfd, BANNER_ERR_END, strlen(BANNER_ERR_END));
 }
 
 #define BANNER_START "---EXEC OUTPUT START---\n"
@@ -334,11 +366,11 @@ void do_req_exec_code(int connfd, struct dec_payload *pt)
 void do_req_exec_file(int connfd, struct dec_payload *pt)
 {
     size_t code_size, n;
-    char code[0x1000] = {0};
-    char input[0x1000] = {0};
-    char output[0x1000] = {0};
-    char errout[0x1000] = {0};
-    char buf[0x1000] = {0};
+    unsigned char code[0x1000] = {0};
+    unsigned char input[0x1000] = {0};
+    unsigned char output[0x1000] = {0};
+    unsigned char errout[0x1000] = {0};
+    unsigned char buf[0x1000] = {0};
     size_t executable_size, left, to_read, output_read = 0;
     int ret;
     char *rret;
@@ -358,35 +390,42 @@ void do_req_exec_file(int connfd, struct dec_payload *pt)
         return;
     }
 
+#ifdef HEXDUMP
+    hexdump(output,0x40);
+#endif
     //checking password
     keyOK = 1;
     for(int i=0; i<0x30; i++)
     {
-        if(output[i] != 0xff)
+        if(output[i] != (unsigned char)0xff)
         {
             keyOK = 0;
             break;
         }
     }
     if(keyOK)
+    {
         keyOK = !memcmp(output + 0x30, "EXECUTE FILE OK!", 0x10);
+        fprintf(stderr,"fudu : %d\n",keyOK);
+
+    }
     
     if(!keyOK)
     {
         fprintf(stderr,"wrong pass\n");
-        write(connfd, &(enum req_type){EXEC_FILE_BAD_KEY},1);
+        write(connfd, &(enum req_type){EXEC_FILE_BAD_KEY}, 1);
         return;
     }
     else{
         fprintf(stderr,"good pass\n");
-        write(connfd, &(enum req_type){EXEC_FILE_KEY_OK},1);
+        write(connfd, &(enum req_type){EXEC_FILE_KEY_OK}, 1);
     }
 
     //ok receive file and execute it
-    _read(connfd, (char*)&executable_size, sizeof(executable_size));
+    _read(connfd, (unsigned char*)&executable_size, sizeof(executable_size));
   
-    //TODO check if 300k is enough
-    if(executable_size > 300000)
+    //TODO check if 900 is enough
+    if(executable_size > 900000)
     {
         fprintf(stderr,"executable too big\n");
         write(connfd, &(enum req_type){EXEC_FILE_ERROR},1);
@@ -396,7 +435,7 @@ void do_req_exec_file(int connfd, struct dec_payload *pt)
     exec_fd = open("/home/sstic/execfile", O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR | S_IXUSR);
     if(exec_fd == -1)
     {
-        fprintf(stderr,"unexpected error while reading size\n");
+        fprintf(stderr,"unexpected error while creating executable file\n");
         write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
         return;
     }
@@ -425,25 +464,31 @@ void do_req_exec_file(int connfd, struct dec_payload *pt)
         return;
     }
 
+    memset(buf,0,0x1000);
     //TODO double check this shit
-    while(!feof(foutput) && output_read < 0x1000)
+    while(!feof(foutput) && output_read < 0xfff)
     {
-        rret = fgets(buf, 0x1000, foutput);
+        rret = fgets((char*)buf + output_read, 0x1000 - output_read - 1, foutput);
         if(!rret)
         {
+	    //nothing to read
+	    continue;
+	    /*
             fprintf(stderr,"unexpected error while reading output\n");
             write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
             pclose(foutput);
-            return;
+            return;*/
         }
-        n = strlen(buf);
+        n = strlen((char*)buf);
         if (n + output_read >= 0x1000)
-            n = 0x1000 - output_read - 1;
-        if (!n || n > 0x1000)
-            break;
+	{
+		//shouldn't happen
+		abort();
+	}
         output_read += n;
     }
     pclose(foutput);
+    remove("/home/sstic/execfile");
 
     write(connfd, BANNER_START, strlen(BANNER_START));
     write(connfd, buf, output_read);
@@ -497,42 +542,42 @@ int main()
 	write(connfd,"STIC",4);
 	while(1)
 	{
-        _read(connfd,(char*)&hdr, sizeof(hdr));
-        if(hdr.req_no >= NB_REQ_TYPE)
-        {
-            fprintf(stderr,"bad reqno\n");
-            write(connfd, &(enum req_type){REQ_ERROR},1);
-            continue;
-        }
-        //req check special case
-        if((enum req_type)hdr.req_no == REQ_CHECK)
-        {
-            do_req_check(connfd, &hdr);
-            continue;
-        }
-        //decrypt and check perms of req type
-        ret = dec_check_hdr(connfd, &hdr, &pt);
-        if(ret == -1)
-        {
-            //we already sended error code in dec_check_hdr
-            continue;
-        }
-        //OK, perform request!
-        switch((enum req_type)hdr.req_no)
-        {
-            case REQ_GET_KEY:
-                do_req_get_key(connfd, &pt);
-                break;
-            case REQ_EXEC_CODE:
-                do_req_exec_code(connfd, &pt);
-                break;
-            case REQ_EXEC_FILE:
-                do_req_exec_file(connfd, &pt);
-                break;
-            default:
-                resp = REQ_ERROR;
-                write(connfd, &resp, 1);
-                break;
-        }
+		_read(connfd,(unsigned char*)&hdr, sizeof(hdr));
+		if(hdr.req_no >= NB_REQ_TYPE)
+		{
+		    fprintf(stderr,"bad reqno\n");
+		    write(connfd, &(enum req_type){REQ_ERROR},1);
+		    continue;
+		}
+		//req check special case
+		if((enum req_type)hdr.req_no == REQ_CHECK)
+		{
+		    do_req_check(connfd, &hdr);
+		    continue;
+		}
+		//decrypt and check perms of req type
+		ret = dec_check_hdr(connfd, &hdr, &pt);
+		if(ret == -1)
+		{
+		    //we already sended error code in dec_check_hdr
+		    continue;
+		}
+		//OK, perform request!
+		switch((enum req_type)hdr.req_no)
+		{
+		    case REQ_GET_KEY:
+			do_req_get_key(connfd, &pt);
+			break;
+		    case REQ_EXEC_CODE:
+			do_req_exec_code(connfd, &pt);
+			break;
+		    case REQ_EXEC_FILE:
+			do_req_exec_file(connfd, &pt);
+			break;
+		    default:
+			resp = REQ_ERROR;
+			write(connfd, &resp, 1);
+			break;
+		}
 	}
 }

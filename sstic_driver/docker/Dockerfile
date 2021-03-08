@@ -46,4 +46,6 @@ RUN chmod +x /root/run_service.sh
 EXPOSE 1337
 WORKDIR /root
 CMD /root/run_service.sh
+#CMD /bin/bash
+
 

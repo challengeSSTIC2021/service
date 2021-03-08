@@ -42,6 +42,8 @@ def handler(sig,frame):
 
     log("will kill {}".format(sig))
     try:
+        #out = os.read(p.stdout.fileno(),1000)
+        #log("out : " + out.decode("utf-8"))
         p.kill()
         p = None
     finally:

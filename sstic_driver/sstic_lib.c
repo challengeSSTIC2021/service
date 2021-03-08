@@ -133,8 +133,8 @@ int wb_decrypt(char ct[16], unsigned int id, char pt[16])
         return ret;
 }
 
-int exec_code(char *code, size_t code_size, char *input, size_t input_size, 
-    char *output, size_t output_size, char *outerr, size_t outerr_size)
+int exec_code(unsigned char *code, size_t code_size, unsigned char *input, size_t input_size, 
+    unsigned char *output, size_t output_size, unsigned char *outerr, size_t outerr_size)
 {
     int ret;
     if(code_size > 0x1000 || input_size > 0x1000 || outerr_size > 0x1000)
@@ -184,7 +184,7 @@ int exec_code(char *code, size_t code_size, char *input, size_t input_size,
     }
 
     memcpy(map_stdin, input, input_size);
-    memcpy(map_stdin, code, code_size);
+    memcpy(map_code, code, code_size);
 
     ret = submit_command(session, OPCODE_EXEC_CODE);
     if(ret == -1)
@@ -201,7 +201,7 @@ int exec_code(char *code, size_t code_size, char *input, size_t input_size,
         return -1;
     }
 
-    char *map_stderr = mmap(NULL,0x1000, PROT_READ , MAP_SHARED , session, rstdout);
+    char *map_stderr = mmap(NULL,0x1000, PROT_READ , MAP_SHARED , session, rstderr);
     if((long)map_stdout == -1)
     {
         perror("map stdout");
