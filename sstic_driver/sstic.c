@@ -104,7 +104,7 @@ static struct cdev c_dev;
 struct sstic_phy_region * alloc_phy_region(unsigned int nb_pages)
 {
 	struct sstic_phy_region *pr;
-	size_t len; 
+	size_t len;
 	#ifdef DEBUG_SSTIC
 	printk(KERN_ERR "alloc phy_region, size %d\n", nb_pages);
 	#endif
@@ -118,7 +118,7 @@ struct sstic_phy_region * alloc_phy_region(unsigned int nb_pages)
 	pr->nb_pages = nb_pages;
 
 	return pr;
-} 
+}
 
 void free_phy_region(struct kref * ref)
 {
@@ -218,7 +218,7 @@ static int sstic_release(struct inode *i, struct file *f)
 struct sstic_region * find_region(struct sstic_session *session, unsigned int id )
 {
 	struct list_head *list;
-	struct sstic_region *entry;	
+	struct sstic_region *entry;
 	list_for_each(list, &session->region_list)
 	{
 		entry = list_entry(list, struct sstic_region, node);
@@ -248,14 +248,14 @@ vm_fault_t sstic_vm_fault(struct vm_fault *vmf)
 	{
 		#ifdef DEBUG_SSTIC
 		printk(KERN_ERR "pgoff too big\n");
-		#endif 
+		#endif
 		return VM_FAULT_SIGBUS;
 	}
 	if(!phy_region->pages[pgoff])
 	{
 		#ifdef DEBUG_SSTIC
 		printk(KERN_ERR "page NULL\n");
-		#endif 
+		#endif
 		return VM_FAULT_SIGBUS;
 	}
 	addr = vma->vm_start + (pgoff << PAGE_SHIFT);
@@ -276,7 +276,7 @@ vm_fault_t sstic_vm_fault(struct vm_fault *vmf)
 		return VM_FAULT_SIGBUS;
 
 	return VM_FAULT_NOPAGE;
-	
+
 
 	return ret;
 }
@@ -294,7 +294,7 @@ void sstic_vm_open(struct vm_area_struct *new_vma)
 	{
 		size_t new_size = (new_vma->vm_end - new_vma->vm_start) >> PAGE_SHIFT;
 		struct sstic_phy_region *new_phy = alloc_phy_region(new_size);
-		
+
 		int i;
 		BUG_ON(!new_phy);
 		#ifdef DEBUG_SSTIC
@@ -325,7 +325,7 @@ void sstic_vm_open(struct vm_area_struct *new_vma)
 			//update old phy alloc
 			memmove(phy->pages, phy->pages + pgoff, sixeof(struct page*) * phy->nb_pages);
 		}
-		else 
+		else
 		{
 			//new is after
 			//copy bottom of old_phy
@@ -345,7 +345,7 @@ void sstic_vm_open(struct vm_area_struct *new_vma)
 				}
 			}
 			else{
-				
+
 			}
 		}*/
 
@@ -354,7 +354,7 @@ void sstic_vm_open(struct vm_area_struct *new_vma)
 			//new is before
 			//copy start of old phy_alloc
 			//new_phy->nb_pages = min(phy->nb_pages, pgoff);
-			
+
 			for(i=0; i<new_phy->nb_pages; i++)
 			{
 				//get_page(phy->pages[phy->off_split + i]);
@@ -368,7 +368,7 @@ void sstic_vm_open(struct vm_area_struct *new_vma)
 			//update old phy alloc
 			memmove(phy->pages, phy->pages + new_size, sizeof(struct page*) * phy->nb_pages);
 		}
-		else 
+		else
 		{
 			//new is after
 			//copy bottom of old_phy
@@ -396,7 +396,7 @@ void sstic_vm_open(struct vm_area_struct *new_vma)
 				printk(KERN_ERR "pfn %x, count %d\n",page_to_pfn(phy->pages[i]), page_count(phy->pages[i]));
 				#endif
 		}
-		
+
 		new_vma->vm_private_data = new_phy;
 	}
 }
@@ -406,7 +406,7 @@ void sstic_vm_close(struct vm_area_struct * old_vma)
 	struct sstic_phy_region *phy = old_vma->vm_private_data;
 	kref_put(&phy->refcount, free_phy_region);
 }
-	
+
 int sstic_vm_split(struct vm_area_struct * old_vma, unsigned long new_addr)
 {
 	struct sstic_phy_region *phy = old_vma->vm_private_data;
@@ -424,7 +424,7 @@ int ioctl_alloc_region(struct sstic_session *session, union sstic_arg *arg)
 	struct sstic_region *region;
 	unsigned int id = next_id++;
 	int i;
-	struct sstic_phy_region *phy; 
+	struct sstic_phy_region *phy;
 	struct page *alloced_pages;
 	size_t order;
 	if(!arg->alloc.nb_pages || !is_power_of_2(arg->alloc.nb_pages))
@@ -486,7 +486,7 @@ int ioctl_assoc_region(struct sstic_session *session, union sstic_arg *arg)
 		#endif
 		return -EINVAL;
 	}
-		
+
 	phy = region->phys;
 	if(!phy)
 		return -EINVAL;
@@ -578,14 +578,14 @@ int ioctl_submit_command(struct sstic_session *session, union sstic_arg *arg)
 	printk(KERN_ERR "EXEC \n");
 	#endif
 	iowrite32(1, _mmio + EXEC);
-	//device execute 
+	//device execute
 	//flush_dcache_page(session->regions[STDOUTNO]->pages[0]);
 	retcode = ioread32(_mmio + RETCODE);
 	#ifdef DEBUG_SSTIC
 	printk(KERN_ERR "retcode %d\n", retcode);
 	#endif
 	return retcode;
-	
+
 }
 
 int ioctl_get_key(union sstic_arg *arg)
@@ -633,7 +633,7 @@ long sstic_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = -EFAULT;
 		goto out_unlock;
 	}
-				
+
 	switch(cmd)
 	{
 		case ALLOC_REGION:
@@ -665,7 +665,7 @@ long sstic_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = -EFAULT;
 		goto out_unlock;
 	}
-		
+
 out_unlock:
 	spin_unlock(&ssticlock);
 	return ret;
@@ -682,14 +682,14 @@ struct vm_operations_struct sstic_vm_ops = {
 int sstic_mmap(struct file * file, struct vm_area_struct * vma)
 {
 	struct sstic_session *session = file->private_data;
-	struct sstic_region *region; 
+	struct sstic_region *region;
 	struct sstic_phy_region *phy_region = NULL;
 	struct sstic_phy_region *map_phy_region = NULL;
 	size_t vm_size;
 	int err = 0;
 	int i;
 	spin_lock(&ssticlock);
-	region = find_region(session, vma->vm_pgoff); 
+	region = find_region(session, vma->vm_pgoff);
 	if (!region)
 	{
 		#ifdef DEBUG_SSTIC
@@ -784,7 +784,7 @@ int sstic_mmap(struct file * file, struct vm_area_struct * vma)
 	out:
 	spin_unlock(&ssticlock);
 	return err;
-	
+
 }
 
 /*
@@ -792,7 +792,7 @@ static unsigned long sstic_get_unmapped_area(struct file *const filp,
 		const unsigned long addr, const unsigned long len,
 		const unsigned long pgoff, const unsigned long flags)
 {
-	return -EINVAL;	
+	return -EINVAL;
 }*/
 
 static int sstic_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
@@ -843,7 +843,7 @@ static struct pci_driver sstic_pci_driver = {
 
 };
 
- 
+
 static int __init sstic_init(void) /* Constructor */
 {
 	int ret;
@@ -880,7 +880,7 @@ static int __init sstic_init(void) /* Constructor */
 
 	return 0;
 }
- 
+
 static void __exit sstic_exit(void) /* Destructor */
 {
 	unregister_chrdev_region(first, 1);

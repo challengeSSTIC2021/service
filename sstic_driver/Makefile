@@ -24,6 +24,12 @@ rootfs_test: exploit sstic.ko user_test service
 	cp sstic.ko fs/lib/modules/
 	cd fs && find . |cpio -H newc -o | gzip > ../rootfs.img
 
+rootfs_kaname: exploit_kaname sstic.ko user_test service
+	cp exploit_kaname fs/home/sstic
+	cp user_test fs
+	cp service fs/home/sstic/service
+	cp sstic.ko fs/lib/modules/
+	cd fs && find . |cpio -H newc -o | gzip > ../rootfs.img
 
 rootfs:  sstic.ko  service
 	rm -f fs/exploit
@@ -63,6 +69,9 @@ user_test: user_test.c sstic_lib.h sstic_lib.c
 exploit: exploit.c 
 	gcc -static -o exploit -Wall exploit.c 
 
+exploit_kaname: exploit_kaname.c 
+	gcc -static -o exploit_kaname -Wall exploit_kaname.c 
+
 .PHONY: docker
 docker: 
 	cp bzImage docker
@@ -76,4 +85,6 @@ docker:
 	
 	# Do not configure qemu outside of the docker (get some error when build)
 	#cd docker/qemu &&  ./configure --target-list=x86_64-softmmu
+	docker build docker -f docker/Dockerfile -t sstic_linux_pwn:latest
+	docker run --rm -it sstic_linux_pwn:latest
 

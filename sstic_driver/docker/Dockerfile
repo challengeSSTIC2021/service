@@ -20,7 +20,7 @@ ADD qemu /root/qemu
 
 RUN cd /root/qemu && \
     ./configure --target-list=x86_64-softmmu && \
-    make -j 8 && \
+    make -j 16 && \
     checkinstall -D -y
 
 FROM ubuntu:latest
@@ -39,13 +39,13 @@ RUN apt-get -y update && \
     rm -rf /var/lib/apt/lists/* /root/qemu*.deb
 
 #keep that at the end so we use cached image of compiled qemu when we modify it
-COPY asm.py bzImage rootfs.img run_service.sh wrapper.py /root/
+COPY asm.py bzImage rootfs.img run_service.sh run_qemu.sh wrapper.py /root/
 
 RUN chmod +x /root/run_service.sh
 
 EXPOSE 1337
 WORKDIR /root
-CMD /root/run_service.sh
-#CMD /bin/bash
+#CMD /root/run_service.sh
+CMD /bin/bash
 
 
