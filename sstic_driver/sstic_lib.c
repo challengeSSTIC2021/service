@@ -104,14 +104,15 @@ int wb_decrypt(char ct[16], unsigned int id, char pt[16])
     if((long)map_stdin == -1)
     {
         perror("map stdin");
+        ret = -1;
         goto out_close;
     }
     char *map_stdout = mmap(NULL,0x1000, PROT_READ , MAP_SHARED , session, rstdout);
     if((long)map_stdout == -1)
     {
         perror("map stdout");
+        ret = -1;
         goto out_stdin;
-        return -1;
     }
     memcpy(map_stdin->buf,ct,16);
     map_stdin->id = id;
@@ -119,7 +120,6 @@ int wb_decrypt(char ct[16], unsigned int id, char pt[16])
     if(ret == -1)
     {
         goto out_stdout;
-        return -1;
     }
     //hexdump(map_stdout, 0x10);
     memcpy(pt, map_stdout, 16);
@@ -137,7 +137,7 @@ int exec_code(unsigned char *code, size_t code_size, unsigned char *input, size_
     unsigned char *output, size_t output_size, unsigned char *outerr, size_t outerr_size)
 {
     int ret;
-    if(code_size > 0x1000 || input_size > 0x1000 || outerr_size > 0x1000)
+    if(code_size > 0x1000 || input_size > 0x1000 || outerr_size > 0x1000 || output_size > 0x1000)
         return -1;
     int session = open("/dev/sstic", O_RDWR);
     if(session == -1)
@@ -174,12 +174,14 @@ int exec_code(unsigned char *code, size_t code_size, unsigned char *input, size_
     if((long)map_stdin == -1)
     {
         perror("map stdin");
+        ret = -1;
         goto out_close;
     }
     char *map_code = mmap(NULL,0x1000, PROT_READ | PROT_WRITE, MAP_SHARED , session, rcode);
     if((long)map_stdin == -1)
     {
         perror("map code");
+        ret = -1;
         goto out_stdin;
     }
 
@@ -190,23 +192,22 @@ int exec_code(unsigned char *code, size_t code_size, unsigned char *input, size_
     if(ret == -1)
     {
         goto out_stdout;
-        return -1;
     }
 
     char *map_stdout = mmap(NULL,0x1000, PROT_READ , MAP_SHARED , session, rstdout);
     if((long)map_stdout == -1)
     {
         perror("map stdout");
+        ret = -1;
         goto out_code;
-        return -1;
     }
 
     char *map_stderr = mmap(NULL,0x1000, PROT_READ , MAP_SHARED , session, rstderr);
     if((long)map_stdout == -1)
     {
         perror("map stdout");
+        ret = -1;
         goto out_stdout;
-        return -1;
     }
 
     memcpy(output, map_stdout, output_size);
@@ -242,6 +243,7 @@ int sstic_getkey(char key[16], uint64_t id)
     if(ret == -1)
     {
         perror("get_key");
+        close(session);
         return -1;
     }
     memcpy(key, arg.get_key.key,16);
@@ -264,6 +266,7 @@ int get_debug_mode()
     if(ret == -1)
     {
         perror("get_debug_state");
+        close(session);
         return -1;
     }
     close(session);

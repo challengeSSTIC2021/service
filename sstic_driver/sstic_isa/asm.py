@@ -195,7 +195,7 @@ class sstic_instr:
         5 : "XOR",
         6 : "SHR",
         7 : "SHL",
-        8 : "NOT",
+        8 : "MUL",
         9 : "CMP",
         10: "MROTL",
         11: "RET",
@@ -647,7 +647,7 @@ class Emulator:
             instr_raw = struct.unpack("<I", self.mem[self.PC:self.PC+4])[0]
             instr = sstic_instr()
             instr.disasm(instr_raw)
-            if instr.opcode in ["ADD", "SUB",  "AND", "OR", "XOR", "NOT", "CMP"]:
+            if instr.opcode in ["ADD", "SUB",  "AND", "OR", "XOR", "MUL", "CMP"]:
                 self.do_operation(instr)
             elif instr.opcode in ["SHL", "SHR"]:
                 self.do_shift(instr)
@@ -1188,6 +1188,17 @@ def test2():
 #0x3000 STDOUT
 #0x4000 DATA
 
+def test3():
+    import hexdump
+    code = assemble_code(chacha20_routine, 0x1000)
+    rom = bytes([ 0x24, 0x72, 0x98, 0x45, 0x33, 0xe3, 0xf6, 0xe7, 0x72, 0xb, 0xda, 0xef, 0x39, 0x3e, 0x4, 0x96, 0xd8, 0x2f, 0xc7, 0x26, 0x45, 0x3e, 0x19, 0x5, 0x15, 0x2e, 0xbd, 0x8c, 0xf3, 0xdc, 0xca, 0x45, 0x9f, 0xdf, 0xea, 0x53, 0xef, 0xf6, 0xef, 0x35, 0xcf, 0x5b, 0x63, 0xf1, 0xf4, 0x3c, 0x57, 0x4e, 0xc9, 0x4e, 0x7b, 0xf, 0x2c, 0x15, 0x89, 0x9d, 0x14, 0x72, 0xf4, 0x2e, 0x72, 0x34, 0x4, 0xd2])
+    stdin = key
+    em = Emulator()
+    em.mem[0x100:0x100+len(rom)] = rom
+    em.mem[0x2000:0x2000+len(stdin)] = stdin
+    em.mem[0x1000:0x1000+len(code)] = code
+    em.execute(False)
+    hexdump.hexdump(em.mem[0x3000:0x3040])
 
 
 if __name__ == "__main__":

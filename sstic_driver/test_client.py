@@ -192,7 +192,7 @@ if 0:
     raise
 
 #r = remote("localhost",4242)
-r = remote("localhost",1337)
+r = remote("62.210.125.243",1337)
 r.recvuntil("STIC")
 ts = get_ts()
 

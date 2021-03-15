@@ -479,7 +479,7 @@ void do_req_exec_file(int connfd, struct dec_payload *pt)
             pclose(foutput);
             return;*/
         }
-        n = strlen((char*)buf);
+        n = strlen(rret);
         if (n + output_read >= 0x1000)
 	{
 		//shouldn't happen
