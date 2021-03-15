@@ -398,10 +398,10 @@ class register:
         return ret
 
     def get_H(self):
-        return struct.unpack("<HHHHHHHH", self.raw)
+        return list(struct.unpack("<HHHHHHHH", self.raw))
 
     def assign_H(self, h):
-        self.raw = bytearray(struct.pack("<HHHHHHHH", h))
+        self.raw = bytearray(struct.pack("<HHHHHHHH", *h))
 
     def get_D(self):
         return list(struct.unpack("<IIII", self.raw))
@@ -428,10 +428,14 @@ class register:
         self.raw = bytearray(bytes)
 
     def get_with_mode(self,mode):
+        if mode == "None":
+            raise BadInstrException
         f = getattr(self,f"get_{mode}")
         return f()
 
     def assign_with_mode(self,mode,l):
+        if mode == "None":
+            raise BadInstrException
         f = getattr(self,f"assign_{mode}")
         f(l)
 
@@ -602,6 +606,8 @@ class Emulator:
         self.regs[instr.op1].assign_with_mode(instr.mode,reg_l)
 
     def do_ST(self, instr):
+        if instr.mode == "None":
+            raise BadInstrException
         if instr.is_direct:
             raise BadInstrException
         if not instr.is_direct:
