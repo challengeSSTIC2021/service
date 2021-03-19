@@ -185,6 +185,9 @@ class BadInstrException(Exception):
 class SegfaultException(Exception):
     pass
 
+class TimeoutException(Exception):
+    pass
+
 class sstic_instr:
     opnames = {
         0 : "ADD",
@@ -211,8 +214,8 @@ class sstic_instr:
         0 : "EQ",
         1 : "LT",
         2 : "GT",
-        3 : "LTE",
-        4 : "GTE"
+        3 : "LE",
+        4 : "GE"
     }
 
     cmp_ropnames = dict([reversed(i) for i in cmp_opnames.items()])
@@ -664,7 +667,7 @@ class Emulator:
                 f(instr)
             if instr.opcode not in ["JC", "CALL", "RET"]:
                 self.PC += 4
-        raise Exception
+        raise TimeoutException
 
     def dump_state(self):
         ret = ""
@@ -1218,6 +1221,8 @@ if __name__ == "__main__":
         print("Bad instruction")
     except SegfaultException:
         print("Forbidden memory access")
+    except TimeoutException:
+        print("Timeout")
     except Exception as e:
         #import traceback
         print("Unexpected error")
