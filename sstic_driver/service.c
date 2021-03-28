@@ -376,11 +376,11 @@ void do_req_exec_file(int connfd, struct dec_payload *pt)
     int keyOK = 0;
     FILE * foutput;
 
-    _read(connfd, input, 0x40);
+    _read(connfd, input, 0x50);
     
     memcpy(code, code_decrypt, sizeof(code_decrypt));
     code_size = sizeof(code_decrypt);
-    ret = exec_code(code, code_size, input, 0x40, output, 0x40, errout, 0 );
+    ret = exec_code(code, code_size, input, 0x50, output, 0x40, errout, 0 );
     if(ret)
     {
         fprintf(stderr,"unexpected error while executing code\n");
