@@ -16,6 +16,7 @@ def log(msg):
     peer = "{}:{}".format(os.environ.get('SOCAT_PEERADDR', '??'), os.environ.get('SOCAT_PEERPORT', '??'))
     sys.stderr.write("{} | [{}]: {}\n".format(datetime.now(), peer, msg))
 
+
 def forward(port):
     time.sleep(2)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -74,6 +75,8 @@ def run():
     signal.signal(15, handler)
     signal.signal(17, handler)
     signal.signal(28, handler)
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(3600)
 
     out = b""
     err = b""
