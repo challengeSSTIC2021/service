@@ -814,6 +814,8 @@ static int sstic_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent
 	#ifdef DEBUG_SSTIC
 	printk(KERN_ERR "mmio %lx\n",_mmio);
 	#endif
+	printk(KERN_INFO "Enabling debug mode");
+	iowrite32(1, _mmio + DEBUG_MODE);
 	return 0;
 }
 
