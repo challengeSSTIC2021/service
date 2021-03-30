@@ -16,3 +16,10 @@ Module.symvers
 .sstic*
 .modules.order.cmd
 .Module.symvers.cmd
+
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+

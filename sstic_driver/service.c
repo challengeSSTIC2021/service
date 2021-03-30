@@ -105,9 +105,11 @@ enum resp_type
     GETKEY_INV_PERMS,
     GETKEY_UNKOWN,
     GETKEY_DEBUG_DEVICE,
+    EXEC_CODE_OK,
     EXEC_CODE_ERROR,
     EXEC_FILE_KEY_OK,
     EXEC_FILE_BAD_KEY,
+    EXEC_FILE_OK,
     EXEC_FILE_ERROR,
     REQ_ERROR = 0xfe,
     UNEXPECTED_ERROR = 0xff
@@ -140,7 +142,7 @@ uint64_t req_perms[NB_REQ_TYPE] = {0xffffffffffffffff, 0xffffffffffffffff, 0x100
 
 //code decrypting password
 
-const char code_decrypt[] = 
+const char code_decrypt[] =
 "\x4e\x01\x40\x20\x42\x1b\x00\x00\x09\x1b\x10\x00\x0c\xe3\x24\x10\x09\x02\x06\x00\x0c\x63\x1c\x10\x4c\x03\xac\x10\x00\x1b\x01\x00"
 "\x4c\x03\x08\x10\x4e\x05\x00\x02\x19\x62\x01\x00\x1c\x23\xac\x10\x29\x41\x10\x02\x2c\xe3\x3c\x10\x4c\x03\xac\x10\x39\x21\x20\x02"
 "\x3c\x23\xac\x10\x45\x16\x05\x00\x20\x17\x0d\x07\x27\x17\x10\x00\x20\x17\x00\x0c\x29\x02\x05\x00\x2c\x63\x60\x10\x4c\x03\xac\x10"
@@ -353,6 +355,7 @@ void do_req_exec_code(int connfd, struct dec_payload *pt)
         return;
     }
 
+    write(connfd, &(enum req_type){EXEC_CODE_OK}, 1);
     write(connfd, output, output_size);
     write(connfd, BANNER_ERR_START, strlen(BANNER_ERR_START));
     write(connfd, errout, strlen((char*)errout));
@@ -377,7 +380,7 @@ void do_req_exec_file(int connfd, struct dec_payload *pt)
     FILE * foutput;
 
     _read(connfd, input, 0x50);
-    
+
     memcpy(code, code_decrypt, sizeof(code_decrypt));
     code_size = sizeof(code_decrypt);
     ret = exec_code(code, code_size, input, 0x50, output, 0x40, errout, 0 );
@@ -405,7 +408,7 @@ void do_req_exec_file(int connfd, struct dec_payload *pt)
     {
         keyOK = !memcmp(output + 0x30, "EXECUTE FILE OK!", 0x10);
     }
-    
+
     if(!keyOK)
     {
         fprintf(stderr,"wrong pass\n");
@@ -419,7 +422,7 @@ void do_req_exec_file(int connfd, struct dec_payload *pt)
 
     //ok receive file and execute it
     _read(connfd, (unsigned char*)&executable_size, sizeof(executable_size));
-  
+
     //TODO check if 900 is enough
     if(executable_size > 900000)
     {
@@ -446,7 +449,7 @@ void do_req_exec_file(int connfd, struct dec_payload *pt)
             fprintf(stderr,"unexpected error while writing file\n");
             write(connfd, &(enum req_type){UNEXPECTED_ERROR},1);
             close(exec_fd);
-            return; 
+            return;
         }
         left -= to_read;
     }
@@ -486,6 +489,7 @@ void do_req_exec_file(int connfd, struct dec_payload *pt)
     pclose(foutput);
     remove("/home/sstic/execfile");
 
+    write(connfd, &(enum req_type){EXEC_FILE_OK},1);
     write(connfd, BANNER_START, strlen(BANNER_START));
     write(connfd, buf, output_read);
     write(connfd, BANNER_END, strlen(BANNER_END));
