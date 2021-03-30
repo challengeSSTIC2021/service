@@ -69,10 +69,12 @@ class RespType(IntEnum):
     GETKEY_INVALID_PERMS = 5
     GETKEY_UNKNOW = 6
     GETKEY_DEBUG_DEVICE = 7,
-    EXEC_CODE_ERROR = 8,
-    EXEC_FILE_KEY_OK = 9,
-    EXEC_FILE_BAD_KEY = 10,
-    EXEC_FILE_ERROR = 11,
+    EXEC_CODE_OK = 8,
+    EXEC_CODE_ERROR = 9,
+    EXEC_FILE_KEY_OK = 10,
+    EXEC_FILE_BAD_KEY = 11,
+    EXEC_FILE_OK = 12,
+    EXEC_FILE_ERROR = 13,
     REQUEST_ERROR = 0xfe
     UNEXPECTED_ERROR = 0xff
 
@@ -148,6 +150,8 @@ def req_exec_code(inp, code, ts):
     pt, payload = get_payload(0,1,ts)
     req = b"\x02" + payload + struct.pack("<I",ts) + code_size + code + input_size + inp + output_size
     r.send(req)
+    c = _recv(1)
+    assert c == bytes([RespType.EXEC_CODE_OK.value])
     output = _recv(0x40)
     err = r.recvuntil("---DEBUG LOG END---\n")
     return output, err
@@ -165,17 +169,15 @@ def req_exec_file(inp, f, ts):
         print ("OK")
     req = file_size + f
     r.send(req)
+    c = _recv(1)
+    assert c == bytes([RespType.EXEC_FILE_OK.value])
     err = r.recvuntil("---EXEC OUTPUT END---\n")
     return  err
 
 
-
-
-#get ts of the last hour.
+#get ts of the last half of hour
 def get_ts():
-    ts = int(time.time())
-    ts -= (ts % 3600)
-    return ts
+    return int(time.time()) - 1800
 
 
 if 0:

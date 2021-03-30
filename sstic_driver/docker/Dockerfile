@@ -38,14 +38,21 @@ RUN apt-get -y update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /root/qemu*.deb
 
-#keep that at the end so we use cached image of compiled qemu when we modify it
-COPY asm.py bzImage rootfs.img run_service.sh wrapper.py /root/
+RUN adduser --disabled-password --gecos '' docker
 
-RUN chmod +x /root/run_service.sh
+WORKDIR /home/docker
+
+#keep that at the end so we use cached image of compiled qemu when we modify it
+COPY asm.py bzImage rootfs.img run_service.sh wrapper.py /home/docker/
+
+RUN chown -R root:root /home/docker && \
+    chmod -R -w /home/docker && \
+    chmod +x /home/docker/run_service.sh
 
 EXPOSE 1337
-WORKDIR /root
-CMD /root/run_service.sh
-#CMD /bin/bash
+
+USER docker
+
+CMD /home/docker/run_service.sh
 
 
