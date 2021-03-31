@@ -51,17 +51,22 @@ service: service.c sstic_lib.h sstic_lib.c
 	gcc -static -o service -Wall sstic_lib.c service.c 
 
 sstic.ko: sstic.c sstic.h
-	git submodule update --init linux
+	#git submodule update --init linux
 	cp linux_config linux/.config
 	cd linux && make modules_prepare; cd ..
 	make -C $(MODULES_DIR) M=$(PWD) modules
-	#strip sstic.ko
+	strip --strip-debug --strip-unneeded  sstic.ko
 
 user_test: user_test.c sstic_lib.h sstic_lib.c
 	gcc -static -o user_test -Wall sstic_lib.c user_test.c 
 
 exploit: exploit.c 
 	gcc -static -o exploit -Wall exploit.c 
+
+public: rootfs
+	cp rootfs.img DRM_server
+	cp bzImage DRM_server
+	tar czvf DRM_server.tar.gz DRM_server
 
 .PHONY: docker
 docker: 

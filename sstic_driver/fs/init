@@ -18,7 +18,9 @@ chmod 700 /sys
 
 
 insmod /lib/modules/sstic.ko
-mount -t devtmpfs none /dev
+#mount -t devtmpfs none /dev
+mknod /dev/ttyS0 c 4 64
+mknod /dev/sstic c 248 0
 chmod a+rw /dev/sstic
 
 chmod o+rw /dev/ttyS0
@@ -28,14 +30,10 @@ chmod 700 /home/sstic
 chmod 555 /home/sstic/service
 
 stty erase ^H
-#stty -F /dev/ttyS0 -icrnl -ixon -ixoff -opost -isig -icanon -echo
-#stty -F /dev/ttyS0  -ixon -ixoff -opost -isig  #-echo
+#uncomment that for shell
 #stty -F /dev/ttyS0 -icrnl -ixon -ixoff -opost -isig #-icanon -echo
-#stty -F /dev/ttyS0  -ixon -ixoff -opost -isig -icanon -echo
 
 #setsid cttyhack setuidgid 1000 sh
-#setsid cttyhack setuidgid 0 sh
-#setuidgid 1000 sh -c "socat PTY,link=/tmp/ttyS0,raw,echo=0 EXEC:/home/sstic/service"
 setuidgid 1000 /home/sstic/service
 
 umount /proc
