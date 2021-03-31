@@ -78,7 +78,7 @@ class RespType(IntEnum):
     REQUEST_ERROR = 0xfe
     UNEXPECTED_ERROR = 0xff
 
-master_key = b"\xdd\x2d\xbe\x18\x99\x1c\xd1\xc3\x82\x16\xc4\xc0\x53\xa1\xdf\x0b"
+master_key = b"\x8b\xf4\x0a\x6c\x7c\xda\xea\x37\xbf\xc2\xbd\x5a\x37\x3c\x1d\xc1"
 key_packer = bytes([0xe, 3, 5, 0xa, 8, 4, 9, 0xb, 0, 0xc, 0xd, 7, 0xf, 2, 6, 1])
 """
 >>> import camellia
@@ -199,21 +199,21 @@ futur_ts = ts + 5000
 print("test ts")
 print("test good ts")
 print(f"ts :{ts:x}, {ts % 3600:x}")
-pt, resp = req_check(0x4307121376ebbe45,0xfffff,ts)
+pt, resp = req_check(0x6fc51949a75bfa98,0xfffff,ts)
 hexdump.hexdump(resp)
 hexdump.hexdump(bytes([RespType.CHECK_OK.value]) + pt)
 assert(resp == bytes([RespType.CHECK_OK.value]) + pt)
-pt, resp = req_key(0x4307121376ebbe45,0xfffff,ts)
-assert(resp == bytes([RespType.GETKEY_OK.value]) + b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f")
+pt, resp = req_key(0x6fc51949a75bfa98,0xfffff,ts)
+assert(resp == bytes([RespType.GETKEY_OK.value]) + b"\x31\xb2\xa4\x20\x2f\x39\x85\x71\x69\xfa\x60\xe1\x5b\x5a\x35\x59")
 print("test futur ts")
-pt, resp = req_check(0x4307121376ebbe45,0xfffff, futur_ts)
+pt, resp = req_check(0x6fc51949a75bfa98,0xfffff, futur_ts)
 assert(resp == bytes([RespType.UNEXPECTED_ERROR.value]))
-pt, resp = req_key(0x4307121376ebbe45,0xfffff, futur_ts)
+pt, resp = req_key(0x6fc51949a75bfa98,0xfffff, futur_ts)
 assert(resp == bytes([RespType.UNEXPECTED_ERROR.value]))
 print("test old ts")
-pt, resp = req_check(0x4307121376ebbe45,0xfffff, old_ts)
+pt, resp = req_check(0x6fc51949a75bfa98,0xfffff, old_ts)
 assert(resp == bytes([RespType.CHECK_EXPIRED.value]) + pt)
-pt, resp = req_key(0x4307121376ebbe45,0xfffff, old_ts)
+pt, resp = req_key(0x6fc51949a75bfa98,0xfffff, old_ts)
 assert(resp == bytes([RespType.GETKEY_EXPIRED.value]))
 
 

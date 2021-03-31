@@ -131,10 +131,28 @@ struct file_info
 // third: need to get shell access to perform the gey_key locally (service will refuse as perm is 0)
 // fourth: need to pwn kernel to write in DEBUG_MODE pci register (but accessible through service after)
 const struct file_info file_perms[] = {
-    {0x4307121376ebbe45, 0xffffffffffffffff},
-    {0x0906271dff3e20b4, 0x10000},
-    {0x7e0a6dea7841ef77, 0},
-    {0x9c92b27651376bfb, 2}}; //this last one needs prod key
+    { 0x6fc51949a75bfa98, 0xffffffffffffffff },
+    { 0x583c5e51d0e1ab05, 0xffffffffffffffff },
+    { 0x675160efed2d139b, 0xffffffffffffffff },
+    { 0x08abda216c40b90c, 0xcc90ebfe },
+    { 0x1d0dfaa715724b5a, 0xcc90ebfe },
+    { 0x3a8ad6d7f95e3487, 0xcc90ebfe },
+    { 0x325149e3fc923a77, 0xcc90ebfe },
+    { 0x46dcc15bcd2db798, 0xcc90ebfe },
+    { 0x4ce294122b6bd2d7, 0xcc90ebfe },
+    { 0x4145107573514dcc, 0xcc90ebfe },
+    { 0x675b9c51b9352849, 0x0 },
+    { 0x3b2c4583a5c9e4eb, 0x0 },
+    { 0x58b7cbfec9e4bce3, 0x0 },
+    { 0x272fed81eab31a41, 0x0 },
+    { 0xfbdf1af71dd4ddda, 0x0 },
+    { 0xed6787e18b12543e, 0x1000 },
+    { 0x68963b6c026c3642, 0xffffffffffffffff },
+    { 0x6811af029018505f, 0xcc90ebfe },
+    { 0x59bdd204aa7112ed, 0x0 },
+    { 0x75edff360609c9f7, 0x0 },
+    { 0xd603c7e177f13c40, 0x1000 }
+};
 
 const size_t NB_FILES = sizeof(file_perms) / sizeof(file_perms[0]);
 
