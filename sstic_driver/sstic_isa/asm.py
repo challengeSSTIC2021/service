@@ -133,7 +133,7 @@ class sstic_instr:
             self.op2 = (instr >> 16) & 7
         self.is_cmp = self.opcode == "CMP"
         if self.is_cmp:
-            cmp_op = (instr >> 13) & 3
+            cmp_op = (instr >> 13) & 7
             self.cmp_op = sstic_instr.cmp_opnames[cmp_op]
 
         if self.is_jmp:
