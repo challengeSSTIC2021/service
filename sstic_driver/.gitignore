@@ -22,4 +22,5 @@ Module.symvers
 *.id2
 *.nam
 *.til
+.gdb_history
 
