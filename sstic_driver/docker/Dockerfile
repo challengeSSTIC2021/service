@@ -46,7 +46,7 @@ WORKDIR /home/docker
 COPY asm.py bzImage rootfs.img run_service.sh wrapper.py /home/docker/
 
 RUN chown -R root:root /home/docker && \
-    chmod -R -w /home/docker && \
+    chmod -R ug-w  /home/docker && \
     chmod +x /home/docker/run_service.sh
 
 EXPOSE 1337

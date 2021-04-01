@@ -1,0 +1,25 @@
+Architecture: Risc 32bits
+
+Memory layout:
+
+0
+
+  Data
+
+0x1000
+
+  Code
+
+0x2000
+
+  Input
+
+0x3000
+
+  Output
+
+0x4000
+
+  Bss
+
+0x10000
