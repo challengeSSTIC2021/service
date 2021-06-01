@@ -1,3 +1,4 @@
+docker/asm.py
 docker/bzImage
 docker/rootfs.img
 docker/run_service.sh

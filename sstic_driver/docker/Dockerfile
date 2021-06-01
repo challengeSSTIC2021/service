@@ -1,4 +1,4 @@
-FROM ubuntu:latest as builder
+FROM ubuntu:20.04 as builder
 
 RUN apt-get -y update && \
     DEBIAN_FRONTEND=noninteractive apt-get -yq install \
@@ -23,7 +23,7 @@ RUN cd /root/qemu && \
     make -j 8 && \
     checkinstall -D -y
 
-FROM ubuntu:latest
+FROM ubuntu:20.04
 
 COPY --from=builder /root/qemu/qemu*.deb /root/
 
